@@ -51,3 +51,22 @@ def test_only_top_n_products_by_review_count_are_loaded_with_all_their_reviews(t
     assert rows(db, "SELECT parent_asin, COUNT(*) FROM reviews GROUP BY parent_asin ORDER BY parent_asin") == [
         ["B", 3], ["C", 2],
     ]
+
+
+def test_reviews_without_meta_are_not_loaded(tmp_path):
+    db = tmp_path / "reviews.db"
+
+    load([meta("A")], [review("A"), review("ORPHAN"), review("ORPHAN")], db)
+
+    assert rows(db, "SELECT parent_asin FROM reviews") == [["A"]]
+    assert rows(db, "SELECT parent_asin FROM products") == [["A"]]
+
+
+def test_reloading_leaves_no_previous_data(tmp_path):
+    db = tmp_path / "reviews.db"
+    load([meta("OLD")], [review("OLD")], db)
+
+    load([meta("NEW")], [review("NEW")], db)
+
+    assert rows(db, "SELECT parent_asin FROM products") == [["NEW"]]
+    assert rows(db, "SELECT parent_asin FROM reviews") == [["NEW"]]

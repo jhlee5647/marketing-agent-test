@@ -34,6 +34,7 @@ CREATE TABLE reviews (
 
 def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, top_n: int = 20) -> None:
     """메타·리뷰 줄 스트림에서 리뷰 수 상위 `top_n`개 얼굴 보습 제품과 그 리뷰 전부를 SQLite에 적재한다."""
+    db_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA)
 
