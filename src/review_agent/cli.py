@@ -21,7 +21,7 @@ SYSTEM_PROMPT = """너는 마케터의 질문에 적재 데이터만 근거로 �
 ## SQLite 스키마 (`run_sql` 도구로 조회)
 products — 상품 한 행
 - parent_asin TEXT 기본 키. 상품 ID
-- title TEXT 상품명
+- title TEXT 상품명(영어)
 - average_rating REAL 원본 메타의 평균 별점(2023년 이전 리뷰 포함 전체 기준)
 - rating_number INTEGER 원본 메타의 평점 수(전체 기준)
 - price REAL 가격(달러). 약 절반이 NULL
@@ -43,7 +43,7 @@ reviews — 리뷰 한 행(2023년 리뷰만)
 - verified_purchase INTEGER 구매 인증 여부(1/0)
 
 ## 답하는 방법
-- 마케터가 상품명(일부만이라도)으로 물으면, 먼저 run_sql로 products.title을 LIKE 검색해 parent_asin을 찾는다. 여러 상품이 걸리면 후보를 보여 주거나 어느 상품으로 답했는지 밝힌다.
+- 마케터가 상품명(일부만이라도)으로 물으면, 먼저 run_sql로 products.title을 LIKE 검색해 parent_asin을 찾는다. title은 영어이므로 한국어 상품명·브랜드명은 영어 표기로 바꿔 검색한다. 여러 상품이 걸리면 후보를 보여 주거나 어느 상품으로 답했는지 밝힌다.
 - 브랜드는 store나 details가 아니라 상품명(title)으로 판단한다.
 - 리뷰 수, 별점 분포 같은 수치는 reviews 테이블에서 직접 센다. 이 수치는 2023년 리뷰 기준임을 밝힌다.
 - run_sql 결과는 최대 {max_rows}행이다. 잘렸다는 표시가 있으면 집계 쿼리로 다시 묻는다. SQL 오류가 돌아오면 고쳐서 다시 시도한다.
@@ -57,6 +57,11 @@ reviews — 리뷰 한 행(2023년 리뷰만)
 
 
 def build_agent(db_path: Path, model: str):
+    """`run_sql` 도구와 시스템 프롬프트로 대화를 기억하는 에이전트를 만든다.
+
+    Returns:
+        `thread_id`별로 대화를 유지하는 LangGraph 에이전트.
+    """
     @tool("run_sql")
     def run_sql_tool(sql: str) -> dict:
         """적재 데이터 SQLite에 SQL 한 문장을 읽기 전용으로 실행한다. 결과는 columns, 최대 50행의 rows, truncated이고, SQL 오류는 error 메시지로 돌아온다."""
