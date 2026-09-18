@@ -12,6 +12,8 @@ META_URL = f"{UCSD_RAW}/meta_categories/meta_Beauty_and_Personal_Care.jsonl.gz"
 REVIEW_URL = f"{UCSD_RAW}/review_categories/Beauty_and_Personal_Care.jsonl.gz"
 
 FACE_MOISTURIZER_PATH = ["Skin Care", "Face", "Creams & Moisturizers"]
+# 2023년 리뷰만 적재한다. 원본이 2023-09에서 끝나므로 상한은 두지 않는다.
+REVIEWS_SINCE_MS = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)
 
 SCHEMA = """
 CREATE TABLE products (
@@ -41,7 +43,7 @@ CREATE TABLE reviews (
 
 
 def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, top_n: int = 20) -> tuple[int, int]:
-    """메타·리뷰 줄 스트림에서 리뷰 수 상위 `top_n`개 얼굴 보습 제품과 그 리뷰 전부를 SQLite에 적재한다.
+    """메타·리뷰 줄 스트림에서 2023년 리뷰 수 상위 `top_n`개 얼굴 보습 제품과 그 2023년 리뷰 전부를 SQLite에 적재한다.
 
     Returns:
         적재된 (상품 수, 리뷰 수).
@@ -65,7 +67,7 @@ def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, 
 
     for line in review_lines:
         r = json.loads(line)
-        if r["parent_asin"] not in product_ids:
+        if r["parent_asin"] not in product_ids or r["timestamp"] < REVIEWS_SINCE_MS:
             continue
         conn.execute(
             "INSERT INTO reviews (parent_asin, asin, user_id, rating, title, text, reviewed_at, helpful_vote,"
