@@ -63,6 +63,7 @@ def load(
         적재된 (상품 수, 리뷰 수).
     """
     db_path.unlink(missing_ok=True)
+    vectors_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA)
 

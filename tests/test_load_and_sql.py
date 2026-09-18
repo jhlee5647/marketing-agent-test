@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from langchain_core.embeddings import DeterministicFakeEmbedding
 
 from review_agent.loader import load
@@ -210,3 +212,17 @@ def test_reloading_leaves_no_previous_reviews_in_search(tmp_path):
     load([meta("NEW")], [review("NEW")], db, vectors, FAKE_EMBEDDINGS)
 
     assert [r["parent_asin"] for r in search_reviews(open_store(vectors, FAKE_EMBEDDINGS), "sticky")] == ["NEW"]
+
+
+def test_failed_reload_leaves_no_previous_reviews_for_search(tmp_path):
+    class FailingEmbeddings(DeterministicFakeEmbedding):
+        def embed_documents(self, texts):
+            raise RuntimeError("embedding failed")
+
+    db, vectors = tmp_path / "reviews.db", tmp_path / "vectors.json"
+    load([meta("OLD")], [review("OLD")], db, vectors, FAKE_EMBEDDINGS)
+
+    with pytest.raises(RuntimeError):
+        load([meta("NEW")], [review("NEW")], db, vectors, FailingEmbeddings(size=8))
+
+    assert not vectors.exists()
