@@ -78,3 +78,21 @@ def test_millisecond_timestamp_is_queryable_as_iso_date(tmp_path):
     load([meta("A")], [review("A", timestamp=1588687728923)], db)
 
     assert rows(db, "SELECT date(reviewed_at) FROM reviews") == [["2020-05-05"]]
+
+
+def test_run_sql_rejects_writes_and_leaves_data_unchanged(tmp_path):
+    db = tmp_path / "reviews.db"
+    load([meta("A")], [review("A")], db)
+
+    for sql in [
+        "INSERT INTO products (parent_asin) VALUES ('X')",
+        "UPDATE reviews SET rating = 1",
+        "DELETE FROM reviews",
+        "DROP TABLE reviews",
+        f"ATTACH '{tmp_path / 'other.db'}' AS other",
+    ]:
+        assert "error" in run_sql(db, sql)
+
+    assert not (tmp_path / "other.db").exists()
+    assert rows(db, "SELECT parent_asin, rating FROM reviews") == [["A", 5.0]]
+    assert rows(db, "SELECT parent_asin FROM products") == [["A"]]
