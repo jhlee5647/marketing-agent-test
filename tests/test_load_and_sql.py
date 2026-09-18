@@ -38,3 +38,16 @@ def test_only_face_moisturizers_and_their_reviews_are_loaded(tmp_path):
 
     assert rows(db, "SELECT parent_asin FROM products") == [["FACE1"]]
     assert rows(db, "SELECT parent_asin FROM reviews") == [["FACE1"]]
+
+
+def test_only_top_n_products_by_review_count_are_loaded_with_all_their_reviews(tmp_path):
+    db = tmp_path / "reviews.db"
+    metas = [meta("A"), meta("B"), meta("C")]
+    reviews = [review("A")] + [review("B")] * 3 + [review("C")] * 2
+
+    load(metas, reviews, db, top_n=2)
+
+    assert rows(db, "SELECT parent_asin FROM products ORDER BY parent_asin") == [["B"], ["C"]]
+    assert rows(db, "SELECT parent_asin, COUNT(*) FROM reviews GROUP BY parent_asin ORDER BY parent_asin") == [
+        ["B", 3], ["C", 2],
+    ]
