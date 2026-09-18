@@ -6,10 +6,16 @@ authors = [
     { name = "jhlee5647", email = "jhlee5647@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "langchain>=1.4.1",
+    "langchain-openai>=1.6.2",
+    "langgraph>=1.2.11",
+    "python-dotenv>=1.2.3",
+]
 
 [project.scripts]
 load = "review_agent.loader:main"
+agent = "review_agent.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.9,<0.13.0"]
