@@ -133,3 +133,10 @@ def test_load_returns_loaded_product_and_review_counts(tmp_path):
     reviews = [review("A")] * 3 + [review("B")] * 2 + [review("C")] + [review("BODY1")] * 5
 
     assert load(metas, reviews, db, top_n=2) == (2, 5)
+
+
+def test_run_sql_returns_error_message_when_nothing_is_loaded(tmp_path):
+    result = run_sql(tmp_path / "missing.db", "SELECT * FROM reviews")
+
+    assert "error" in result
+    assert not (tmp_path / "missing.db").exists()
