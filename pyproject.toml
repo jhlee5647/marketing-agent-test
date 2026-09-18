@@ -1,0 +1,21 @@
+[project]
+name = "review-agent"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "jhlee5647", email = "jhlee5647@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+review-agent = "review_agent:main"
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
