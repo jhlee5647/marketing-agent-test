@@ -21,11 +21,11 @@ def meta(parent_asin, categories=FACE, title="Hydra Cream"):
     })
 
 
-def review(parent_asin, timestamp=1683295728923, rating=5.0, text="Lovely."):
+def review(parent_asin, timestamp=1683295728923, rating=5.0, text="Lovely.", verified=True):
     return json.dumps({
         "rating": rating, "title": "Nice", "text": text, "images": [], "asin": parent_asin + "-V",
         "parent_asin": parent_asin, "user_id": "AGKHLEW2SOWHNMFQIJGBECAF7INQ", "timestamp": timestamp,
-        "helpful_vote": 0, "verified_purchase": True,
+        "helpful_vote": 0, "verified_purchase": verified,
     })
 
 
@@ -168,3 +168,45 @@ def test_search_reviews_returns_only_reviews_of_the_given_product(tmp_path):
     results = search_reviews(open_store(vectors, FAKE_EMBEDDINGS), "moisturizing", parent_asin="A")
 
     assert [r["parent_asin"] for r in results] == ["A"] * 3
+
+
+def test_search_reviews_returns_only_reviews_within_the_rating_range(tmp_path):
+    db, vectors = tmp_path / "reviews.db", tmp_path / "vectors.json"
+    load([meta("A")], [review("A", rating=r) for r in [1.0, 2.0, 3.0, 4.0, 5.0]], db, vectors, FAKE_EMBEDDINGS)
+
+    results = search_reviews(open_store(vectors, FAKE_EMBEDDINGS), "sticky", min_rating=2, max_rating=4)
+
+    assert sorted(r["rating"] for r in results) == [2.0, 3.0, 4.0]
+
+
+def test_search_reviews_returns_only_verified_purchases_when_asked(tmp_path):
+    db, vectors = tmp_path / "reviews.db", tmp_path / "vectors.json"
+    reviews = [review("A", text="verified"), review("A", text="unverified", verified=False)]
+    load([meta("A")], reviews, db, vectors, FAKE_EMBEDDINGS)
+
+    results = search_reviews(open_store(vectors, FAKE_EMBEDDINGS), "sticky", verified_only=True)
+
+    assert [r["text"] for r in results] == ["verified"]
+
+
+def test_search_reviews_result_is_the_same_review_in_run_sql(tmp_path):
+    db, vectors = tmp_path / "reviews.db", tmp_path / "vectors.json"
+    reviews = [review("A", rating=r, text=f"Text {r}") for r in [1.0, 3.0, 5.0]] + [review("B", text="Other")]
+    load([meta("A"), meta("B")], reviews, db, vectors, FAKE_EMBEDDINGS)
+
+    results = search_reviews(open_store(vectors, FAKE_EMBEDDINGS), "sticky")
+
+    assert len(results) == 4
+    for r in results:
+        assert rows(db, f"SELECT parent_asin, rating, title, text FROM reviews WHERE review_id = {r['review_id']}") == [
+            [r["parent_asin"], r["rating"], r["title"], r["text"]],
+        ]
+
+
+def test_reloading_leaves_no_previous_reviews_in_search(tmp_path):
+    db, vectors = tmp_path / "reviews.db", tmp_path / "vectors.json"
+    load([meta("OLD")], [review("OLD")] * 3, db, vectors, FAKE_EMBEDDINGS)
+
+    load([meta("NEW")], [review("NEW")], db, vectors, FAKE_EMBEDDINGS)
+
+    assert [r["parent_asin"] for r in search_reviews(open_store(vectors, FAKE_EMBEDDINGS), "sticky")] == ["NEW"]
