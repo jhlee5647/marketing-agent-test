@@ -70,3 +70,11 @@ def test_reloading_leaves_no_previous_data(tmp_path):
 
     assert rows(db, "SELECT parent_asin FROM products") == [["NEW"]]
     assert rows(db, "SELECT parent_asin FROM reviews") == [["NEW"]]
+
+
+def test_millisecond_timestamp_is_queryable_as_iso_date(tmp_path):
+    db = tmp_path / "reviews.db"
+
+    load([meta("A")], [review("A", timestamp=1588687728923)], db)
+
+    assert rows(db, "SELECT date(reviewed_at) FROM reviews") == [["2020-05-05"]]

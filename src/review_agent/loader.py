@@ -1,6 +1,7 @@
 import json
 import sqlite3
 from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
 
 FACE_MOISTURIZER_PATH = ["Skin Care", "Face", "Creams & Moisturizers"]
@@ -59,7 +60,8 @@ def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, 
             "INSERT INTO reviews (parent_asin, asin, user_id, rating, title, text, reviewed_at, helpful_vote,"
             " verified_purchase) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                r["parent_asin"], r["asin"], r["user_id"], r["rating"], r["title"], r["text"], None,
+                r["parent_asin"], r["asin"], r["user_id"], r["rating"], r["title"], r["text"],
+                datetime.fromtimestamp(r["timestamp"] / 1000, UTC).isoformat(timespec="seconds"),
                 r["helpful_vote"], r["verified_purchase"],
             ),
         )
