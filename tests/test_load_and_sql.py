@@ -17,7 +17,7 @@ def meta(parent_asin, categories=FACE, title="Hydra Cream"):
     })
 
 
-def review(parent_asin, timestamp=1588687728923, rating=5.0, text="Lovely."):
+def review(parent_asin, timestamp=1683295728923, rating=5.0, text="Lovely."):
     return json.dumps({
         "rating": rating, "title": "Nice", "text": text, "images": [], "asin": parent_asin + "-V",
         "parent_asin": parent_asin, "user_id": "AGKHLEW2SOWHNMFQIJGBECAF7INQ", "timestamp": timestamp,
@@ -75,9 +75,9 @@ def test_reloading_leaves_no_previous_data(tmp_path):
 def test_millisecond_timestamp_is_queryable_as_iso_date(tmp_path):
     db = tmp_path / "reviews.db"
 
-    load([meta("A")], [review("A", timestamp=1588687728923)], db)
+    load([meta("A")], [review("A", timestamp=1683295728923)], db)
 
-    assert rows(db, "SELECT date(reviewed_at) FROM reviews") == [["2020-05-05"]]
+    assert rows(db, "SELECT date(reviewed_at) FROM reviews") == [["2023-05-05"]]
 
 
 def test_run_sql_rejects_writes_and_leaves_data_unchanged(tmp_path):
@@ -140,3 +140,16 @@ def test_run_sql_returns_error_message_when_nothing_is_loaded(tmp_path):
 
     assert "error" in result
     assert not (tmp_path / "missing.db").exists()
+
+
+def test_only_2023_reviews_are_loaded_and_ranked(tmp_path):
+    db = tmp_path / "reviews.db"
+    end_of_2022 = 1672531199999  # 2022-12-31T23:59:59.999Z
+    start_of_2023 = 1672531200000  # 2023-01-01T00:00:00Z
+    metas = [meta("OLD_POPULAR"), meta("NEW")]
+    reviews = [review("OLD_POPULAR", timestamp=end_of_2022)] * 3 + [review("NEW", timestamp=start_of_2023)]
+
+    load(metas, reviews, db, top_n=1)
+
+    assert rows(db, "SELECT parent_asin FROM products") == [["NEW"]]
+    assert rows(db, "SELECT parent_asin, reviewed_at FROM reviews") == [["NEW", "2023-01-01T00:00:00+00:00"]]
