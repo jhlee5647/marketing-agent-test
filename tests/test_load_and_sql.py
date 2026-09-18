@@ -125,3 +125,11 @@ def test_run_sql_returns_syntax_error_as_message(tmp_path):
     result = run_sql(db, "SELEC * FROM reviews")
 
     assert "syntax error" in result["error"]
+
+
+def test_load_returns_loaded_product_and_review_counts(tmp_path):
+    db = tmp_path / "reviews.db"
+    metas = [meta("A"), meta("B"), meta("C"), meta("BODY1", BODY)]
+    reviews = [review("A")] * 3 + [review("B")] * 2 + [review("C")] + [review("BODY1")] * 5
+
+    assert load(metas, reviews, db, top_n=2) == (2, 5)

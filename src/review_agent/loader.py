@@ -1,8 +1,15 @@
+import argparse
+import gzip
 import json
 import sqlite3
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.request import urlopen
+
+UCSD_RAW = "https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw"
+META_URL = f"{UCSD_RAW}/meta_categories/meta_Beauty_and_Personal_Care.jsonl.gz"
+REVIEW_URL = f"{UCSD_RAW}/review_categories/Beauty_and_Personal_Care.jsonl.gz"
 
 FACE_MOISTURIZER_PATH = ["Skin Care", "Face", "Creams & Moisturizers"]
 
@@ -33,8 +40,12 @@ CREATE TABLE reviews (
 """
 
 
-def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, top_n: int = 20) -> None:
-    """메타·리뷰 줄 스트림에서 리뷰 수 상위 `top_n`개 얼굴 보습 제품과 그 리뷰 전부를 SQLite에 적재한다."""
+def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, top_n: int = 20) -> tuple[int, int]:
+    """메타·리뷰 줄 스트림에서 리뷰 수 상위 `top_n`개 얼굴 보습 제품과 그 리뷰 전부를 SQLite에 적재한다.
+
+    Returns:
+        적재된 (상품 수, 리뷰 수).
+    """
     db_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA)
@@ -76,4 +87,26 @@ def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, 
     conn.execute("DELETE FROM products WHERE parent_asin NOT IN (SELECT parent_asin FROM top_products)")
 
     conn.commit()
+    counts = conn.execute("SELECT (SELECT COUNT(*) FROM products), (SELECT COUNT(*) FROM reviews)").fetchone()
     conn.close()
+    return counts
+
+
+def stream_lines(url: str) -> Iterator[str]:
+    """`.jsonl.gz`를 디스크에 저장하지 않고 HTTP로 받으며 압축을 풀어 한 줄씩 넘긴다.
+
+    첫 줄을 읽을 때 연결을 연다. 메타를 훑는 동안 리뷰 연결이 놀다가 끊기지 않게 하기 위해서다.
+    """
+    with urlopen(url) as response, gzip.open(response, "rt", encoding="utf-8") as lines:
+        yield from lines
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="UCSD Beauty_and_Personal_Care에서 얼굴 보습 제품을 적재한다.")
+    parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
+    parser.add_argument("--top-n", type=int, default=20, help="적재할 상위 상품 개수")
+    args = parser.parse_args()
+
+    args.db.parent.mkdir(parents=True, exist_ok=True)
+    products, reviews = load(stream_lines(META_URL), stream_lines(REVIEW_URL), args.db, args.top_n)
+    print(f"완료: 상품 {products}개, 리뷰 {reviews}건")

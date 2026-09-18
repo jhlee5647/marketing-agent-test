@@ -1,7 +1,7 @@
 [project]
 name = "review-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "리뷰 질의 에이전트 MVP"
 authors = [
     { name = "jhlee5647", email = "jhlee5647@gmail.com" }
 ]
@@ -9,7 +9,7 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.scripts]
-review-agent = "review_agent:main"
+load = "review_agent.loader:main"
 
 [build-system]
 requires = ["uv_build>=0.12.9,<0.13.0"]
