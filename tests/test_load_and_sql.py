@@ -96,3 +96,32 @@ def test_run_sql_rejects_writes_and_leaves_data_unchanged(tmp_path):
     assert not (tmp_path / "other.db").exists()
     assert rows(db, "SELECT parent_asin, rating FROM reviews") == [["A", 5.0]]
     assert rows(db, "SELECT parent_asin FROM products") == [["A"]]
+
+
+def test_run_sql_truncates_results_over_50_rows(tmp_path):
+    db = tmp_path / "reviews.db"
+    load([meta("A")], [review("A")] * 51, db)
+
+    result = run_sql(db, "SELECT review_id FROM reviews")
+
+    assert len(result["rows"]) == 50
+    assert result["truncated"] is True
+
+
+def test_run_sql_does_not_mark_results_of_50_rows_or_fewer_as_truncated(tmp_path):
+    db = tmp_path / "reviews.db"
+    load([meta("A")], [review("A")] * 50, db)
+
+    result = run_sql(db, "SELECT review_id FROM reviews")
+
+    assert len(result["rows"]) == 50
+    assert result["truncated"] is False
+
+
+def test_run_sql_returns_syntax_error_as_message(tmp_path):
+    db = tmp_path / "reviews.db"
+    load([meta("A")], [review("A")], db)
+
+    result = run_sql(db, "SELEC * FROM reviews")
+
+    assert "syntax error" in result["error"]
