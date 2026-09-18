@@ -7,10 +7,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.request import urlopen
 
+from dotenv import load_dotenv
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_openai import OpenAIEmbeddings
 
-from review_agent.search_tool import document_prefix
+from review_agent.search_tool import EMBEDDING_MODEL, document_prefix
 
 UCSD_RAW = "https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw"
 META_URL = f"{UCSD_RAW}/meta_categories/meta_Beauty_and_Personal_Care.jsonl.gz"
@@ -134,9 +136,14 @@ def stream_lines(url: str) -> Iterator[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="UCSD Beauty_and_Personal_Care에서 얼굴 보습 제품을 적재한다.")
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
+    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
     parser.add_argument("--top-n", type=int, default=20, help="적재할 상위 상품 개수")
     args = parser.parse_args()
 
+    load_dotenv()
     args.db.parent.mkdir(parents=True, exist_ok=True)
-    products, reviews = load(stream_lines(META_URL), stream_lines(REVIEW_URL), args.db, args.top_n)
+    products, reviews = load(
+        stream_lines(META_URL), stream_lines(REVIEW_URL), args.db, args.vectors,
+        OpenAIEmbeddings(model=EMBEDDING_MODEL), args.top_n,
+    )
     print(f"완료: 상품 {products}개, 리뷰 {reviews}건")

@@ -6,8 +6,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.tools import tool
+from langchain_openai import OpenAIEmbeddings
 from langgraph.checkpoint.memory import InMemorySaver
 
+from review_agent.search_tool import EMBEDDING_MODEL, open_store, search_reviews
 from review_agent.sql_tool import MAX_ROWS, run_sql
 
 EXIT_COMMANDS = {"exit", "quit", "종료"}
@@ -17,6 +19,7 @@ SYSTEM_PROMPT = """너는 마케터의 질문에 적재 데이터만 근거로 �
 ## 적재 범위
 - Amazon Reviews 2023(미국 Amazon)의 얼굴 보습 제품(카테고리 Skin Care > Face > Creams & Moisturizers) 중 2023년 리뷰가 가장 많은 상위 {product_count}개 상품과, 그 상품의 2023년 리뷰 전부다.
 - 2023년 이전 리뷰, 다른 상품, 다른 카테고리(바디 로션, 립밤 등)는 들어 있지 않다.
+- 같은 리뷰가 SQLite(`run_sql`)와 리뷰 의미 검색(`search_reviews`)에 같은 review_id로 들어 있다.
 
 ## SQLite 스키마 (`run_sql` 도구로 조회)
 products — 상품 한 행
@@ -47,17 +50,21 @@ reviews — 리뷰 한 행(2023년 리뷰만)
 - 브랜드는 store나 details가 아니라 상품명(title)으로 판단한다.
 - 리뷰 수, 별점 분포 같은 수치는 reviews 테이블에서 직접 센다. 이 수치는 2023년 리뷰 기준임을 밝힌다.
 - run_sql 결과는 최대 {max_rows}행이다. 잘렸다는 표시가 있으면 집계 쿼리로 다시 묻는다. SQL 오류가 돌아오면 고쳐서 다시 시도한다.
+- 리뷰 내용(사용감, 불만, 칭찬 등)에 관한 질문은 search_reviews로 관련 리뷰를 찾는다. 리뷰가 영어이므로 검색어는 영어로 바꿔서 넘긴다.
+- 상품, 별점 범위, 구매 인증 조건은 search_reviews의 필터(parent_asin, min_rating, max_rating, verified_only)로 건다. 상품명으로 물으면 먼저 run_sql로 parent_asin을 찾는다.
+- 한 번의 검색으로 부족하면 검색어를 바꿔 여러 번 검색한다. search_reviews는 가까운 리뷰 일부만 돌려주므로, 검색 결과에서 본 빈도를 전체 리뷰의 빈도처럼 말하지 않는다. 전체 건수는 run_sql로 센다.
 
 ## 답변 규칙
 - 항상 한국어로 답한다.
-- 답변 끝에 근거를 붙인다. 근거는 실행한 SQL과 그 결과 수치다.
+- 답변 끝에 근거를 붙인다. 근거는 인용한 리뷰의 review_id와 짧은 원문 인용, 또는 실행한 SQL과 그 결과 수치다.
+- 요약과 원문 인용을 구분한다. 요약은 한국어로 쓰고, 인용은 리뷰 원문(영어)을 고치지 않고 따옴표 안에 review_id와 함께 쓴다(예: #1234 "stays sticky for hours").
 - 적재 데이터로 답할 수 없는 질문(매출, 국가별 판매, 적재 범위 밖의 상품·카테고리·기간 등)에는 지어내지 말고 적재 데이터로는 답할 수 없다고 말하고, 그 이유(적재 범위)를 짧게 설명한다.
 - 조건에 맞는 데이터가 없으면 없다고 말한다.
 """
 
 
-def build_agent(db_path: Path, model: str):
-    """`run_sql` 도구와 시스템 프롬프트로 대화를 기억하는 에이전트를 만든다.
+def build_agent(db_path: Path, vectors_path: Path, model: str):
+    """`run_sql`, `search_reviews` 도구와 시스템 프롬프트로 대화를 기억하는 에이전트를 만든다.
 
     Returns:
         `thread_id`별로 대화를 유지하는 LangGraph 에이전트.
@@ -67,10 +74,24 @@ def build_agent(db_path: Path, model: str):
         """적재 데이터 SQLite에 SQL 한 문장을 읽기 전용으로 실행한다. 결과는 columns, 최대 50행의 rows, truncated이고, SQL 오류는 error 메시지로 돌아온다."""
         return run_sql(db_path, sql)
 
+    store = open_store(vectors_path, OpenAIEmbeddings(model=EMBEDDING_MODEL))
+
+    @tool("search_reviews")
+    def search_reviews_tool(
+        query: str,
+        parent_asin: str | None = None,
+        min_rating: float | None = None,
+        max_rating: float | None = None,
+        verified_only: bool = False,
+        k: int = 10,
+    ) -> list[dict]:
+        """리뷰를 의미 검색한다. 리뷰가 영어이므로 query는 영어로 바꿔서 넘긴다. parent_asin(상품), min_rating·max_rating(별점 1~5, 양 끝 포함), verified_only(구매 인증만)로 거를 수 있다. 결과는 가까운 순서로 최대 k개 리뷰의 review_id, parent_asin, rating, title, text(본문 앞부분)다."""
+        return search_reviews(store, query, parent_asin, min_rating, max_rating, verified_only, k)
+
     product_count = run_sql(db_path, "SELECT COUNT(*) FROM products")["rows"][0][0]
     return create_agent(
         model=f"openai:{model}",
-        tools=[run_sql_tool],
+        tools=[run_sql_tool, search_reviews_tool],
         system_prompt=SYSTEM_PROMPT.format(product_count=product_count, max_rows=MAX_ROWS),
         checkpointer=InMemorySaver(),
     )
@@ -79,12 +100,14 @@ def build_agent(db_path: Path, model: str):
 def main() -> None:
     parser = argparse.ArgumentParser(description="적재 데이터에 한국어로 질문하는 리뷰 질의 에이전트")
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
+    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
     args = parser.parse_args()
-    if not args.db.exists():
-        raise SystemExit(f"적재 데이터가 없습니다: {args.db}. 먼저 `uv run load`로 적재하세요.")
+    for path in (args.db, args.vectors):
+        if not path.exists():
+            raise SystemExit(f"적재 데이터가 없습니다: {path}. 먼저 `uv run load`로 적재하세요.")
 
     load_dotenv()
-    agent = build_agent(args.db, os.environ["OPENAI_MODEL"])
+    agent = build_agent(args.db, args.vectors, os.environ["OPENAI_MODEL"])
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
 
     print(f"질문을 입력하세요. 끝내려면 {', '.join(sorted(EXIT_COMMANDS))} 중 하나를 입력하세요.")
