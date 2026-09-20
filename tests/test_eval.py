@@ -4,6 +4,7 @@ from langchain_core.embeddings import DeterministicFakeEmbedding
 
 from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import TurnResult, evaluate
+from review_agent.eval.compare import compare
 from review_agent.eval.judge import JudgeVerdict
 from review_agent.eval.report import run_meta, save_run
 from review_agent.loader import load
@@ -455,3 +456,91 @@ def test_judge_tokens_are_counted_apart_from_the_agent_tokens(tmp_path):
 
     assert summary["tokens"] == {"input": 900, "output": 100}
     assert summary["judge_tokens"] == {"input": 50, "output": 10}
+
+
+def run_document(label="n20", cases=(), seconds=2.0, tokens=1000, commit="aaa1111", prompt_hash="p1"):
+    """비교에 넣을 평가 결과 하나. (케이스 id, 통과 횟수, 실행 횟수, 유형) 목록으로 만든다."""
+    return {
+        "run_id": f"{label}-{commit}-000001",
+        "scale": {"label": label, "products": 20, "reviews": 4744},
+        "load_metrics": {"load_seconds": 60.0, "embedding_seconds": 10.0, "db_bytes": 1, "vectors_bytes": 2},
+        "model": "gpt-5.4-mini", "judge_model": "gpt-5.4", "prompt_hash": prompt_hash, "commit": commit,
+        "vector_store_open_ms": 13000.0,
+        "cases": [
+            {"id": i, "type": t, "passed": p, "total": n, "turns": ["질문"], "resolved": {}, "human_label": None,
+             "runs": [{"fail_reason": None if p else "실패"}]}
+            for i, p, n, t in cases
+        ],
+        "summary": {
+            "passed": sum(p for _, p, _, _ in cases), "total": sum(n for _, _, n, _ in cases),
+            "by_type": {}, "question_seconds": {"median": seconds, "max": seconds * 2},
+            "module_ms": {"llm": 1000.0}, "tokens": {"input": tokens, "output": 100},
+            "judge_tokens": {"input": 50, "output": 10}, "judge_agreement": {"matched": 2, "of": 2},
+            "question_tokens": {"median": tokens / 2, "total": tokens}, "embedding_calls": 4,
+        },
+    }
+
+
+def test_a_case_that_fell_from_every_run_passing_to_one_is_a_regression(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계"), ("refuse", 2, 3, "거절")])
+    current = run_document(cases=[("agg", 1, 3, "집계"), ("refuse", 3, 3, "거절")], commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "회귀"
+    assert comparison.regressed == ["agg"]
+    assert comparison.newly_passing == ["refuse"]
+
+
+def test_the_same_overall_pass_rate_does_not_hide_a_regression(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계"), ("topic", 1, 3, "주제")])
+    current = run_document(cases=[("agg", 1, 3, "집계"), ("topic", 3, 3, "주제")], commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert (comparison.verdict, comparison.regressed) == ("회귀", ["agg"])
+    assert current["summary"]["passed"] == baseline["summary"]["passed"]
+
+
+def test_a_case_that_only_fell_to_two_of_three_is_not_a_regression(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계")])
+    current = run_document(cases=[("agg", 2, 3, "집계")], commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "이상 없음"
+    assert comparison.regressed == []
+
+
+def test_quality_is_not_compared_across_different_scales(tmp_path):
+    baseline = run_document(label="n20", cases=[("agg", 3, 3, "집계")], seconds=2.0)
+    current = run_document(label="n200", cases=[("agg", 0, 3, "집계")], seconds=9.0, commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "규모 다름"
+    assert comparison.regressed == []
+    assert "품질은 비교하지 않" in comparison.markdown
+    assert "9.0" in comparison.markdown
+
+
+def test_without_a_baseline_a_single_result_report_comes_out(tmp_path):
+    current = run_document(cases=[("agg", 3, 3, "집계"), ("topic", 2, 3, "주제")])
+
+    comparison = compare(current, None)
+
+    assert comparison.verdict == "기준선 없음"
+    assert "기준선이 됩니다" in comparison.markdown
+    for expected in ["5/6", "집계", "llm", "심판", "적재"]:
+        assert expected in comparison.markdown
+
+
+def test_comparison_report_shows_the_changes_and_the_conditions(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계")], seconds=2.0, tokens=1000)
+    current = run_document(cases=[("agg", 1, 3, "집계")], seconds=3.0, tokens=1400, commit="bbb2222",
+                           prompt_hash="p2")
+
+    markdown = compare(current, baseline).markdown
+
+    for expected in ["회귀", "agg", "3/3", "1/3", "2.0", "3.0", "1000", "1400", "p1", "p2", "bbb2222"]:
+        assert expected in markdown

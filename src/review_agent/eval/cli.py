@@ -9,10 +9,11 @@ from langchain_openai import OpenAIEmbeddings
 
 from review_agent.cli import SYSTEM_PROMPT, build_agent
 from review_agent.eval.cases import load_cases
+from review_agent.eval.compare import compare
 from review_agent.eval.harness import evaluate
 from review_agent.eval.instrument import TimingEmbeddings, agent_executor
 from review_agent.eval.judge import openai_judge
-from review_agent.eval.report import run_meta, save_run
+from review_agent.eval.report import latest_run, run_meta, save_report, save_run
 from review_agent.search_tool import EMBEDDING_MODEL, open_store
 
 
@@ -24,6 +25,7 @@ def main() -> None:
     parser.add_argument("--runs", type=int, default=3, help="케이스 하나를 실행할 횟수")
     parser.add_argument("--runs-dir", type=Path, default=Path("evals/runs"), help="커밋하는 결과를 둘 디렉터리")
     parser.add_argument("--details-dir", type=Path, default=Path("evals/details"), help="답변 전문을 둘 디렉터리")
+    parser.add_argument("--reports-dir", type=Path, default=Path("evals/reports"), help="비교 리포트를 둘 디렉터리")
     args = parser.parse_args()
     for path in (args.cases, args.db, args.vectors):
         if not path.exists():
@@ -51,9 +53,16 @@ def main() -> None:
         args.db, model, judge_model,
         hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8], store_open_ms,
     )
+    baseline = latest_run(args.runs_dir, meta["scale"]["label"], meta["run_id"]) if args.runs_dir.exists() else None
     run_path, details_path = save_run(result, args.runs_dir, args.details_dir, meta)
+    comparison = compare({**meta, **result}, baseline)
+    name = f"{meta['run_id']}-vs-{baseline['run_id']}" if baseline else meta["run_id"]
+    report_path = save_report(comparison.markdown, args.reports_dir, name)
+
     _print_summary(result, meta)
-    print(f"\n저장: {run_path}  (상세: {details_path})")
+    print(f"\n판정     {comparison.verdict}" + (f" — {', '.join(comparison.regressed)}" if comparison.regressed else ""))
+    print(f"저장     {run_path}  (상세: {details_path})")
+    print(f"리포트   {report_path}")
 
 
 def _print_summary(result: dict, meta: dict) -> None:

@@ -80,3 +80,30 @@ def _write(path: Path, document: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(document, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def latest_run(runs_dir: Path, scale_label: str, exclude: str) -> dict | None:
+    """같은 규모의 가장 최근 평가 결과. 회귀를 판정할 기준선이다.
+
+    규모가 다른 결과는 품질을 비교할 수 없으므로 고르지 않는다.
+
+    Returns:
+        기준선으로 쓸 결과. 같은 규모의 이전 결과가 없으면 None.
+    """
+    candidates = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if path.stem != exclude
+    ]
+    return next((run for run in candidates if run["scale"]["label"] == scale_label), None)
+
+
+def save_report(markdown: str, reports_dir: Path, name: str) -> Path:
+    """비교 리포트를 저장소에 커밋되는 마크다운으로 쓴다."""
+    return _write_text(reports_dir / f"{name}.md", markdown)
+
+
+def _write_text(path: Path, text: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
