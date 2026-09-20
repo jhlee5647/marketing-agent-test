@@ -68,3 +68,42 @@ SELECT COUNT(*) FROM reviews WHERE rating <= 2 AND parent_asin = (
   [[cases.forbidden]]
   tool = "search_reviews"
   args_missing = ["parent_asin"]
+
+# 정답이 하나로 정해지지 않는 케이스. 심판이 루브릭으로 채점한다.
+[[cases]]
+id = "topic-stickiness"
+type = "주제"
+turns = ["사람들이 끈적임에 대해 뭐라고 해?"]
+rubric = """
+- 끈적임에 대한 리뷰어들의 반응을 요약한다. 긍정과 부정이 섞여 있으면 섞여 있다고 밝힌다.
+- 근거로 review_id와 짧은 영어 원문 인용을 붙인다.
+- 검색 결과에서 본 빈도를 전체 리뷰의 빈도인 것처럼 단정하지 않는다.
+"""
+# 사람이 직접 매긴 라벨. 심판의 판정이 이것과 얼마나 맞는지로 심판을 믿어도 되는지 잰다.
+human_label = "pass"
+
+  [[cases.expected_trajectory]]
+  tool = "search_reviews"
+
+[[cases]]
+id = "followup-five-star-praise"
+type = "후속"
+turns = [
+  "{리뷰 수 1위 상품}의 1~2점 리뷰에서 가장 많이 나오는 불만은?",
+  "그럼 5점 리뷰에서는 뭘 칭찬해?",
+]
+rubric = """
+- 5점 리뷰에서 반복되는 칭찬을 두 가지 이상 든다.
+- 근거로 review_id와 짧은 영어 원문 인용을 붙인다.
+- 앞 질문에서 다루던 상품에 대한 답이다. 다른 상품으로 옮겨 가지 않는다.
+"""
+human_label = "pass"
+
+  [[cases.expected_trajectory]]
+  tool = "search_reviews"
+  args_match = { min_rating = ">=5" }
+
+  # 앞 대화를 이어받지 못하고 상품을 다시 찾으면 실패다.
+  [[cases.forbidden]]
+  tool = "run_sql"
+  args_match = { sql = "products.+title.+LIKE" }

@@ -7,6 +7,9 @@ from review_agent.sql_tool import run_sql
 
 # 에이전트는 거절을 여러 말로 한다. 실제 답변에서 관측한 표현을 모은 목록이다.
 REFUSAL_PHRASES = ["답할 수 없", "답변할 수 없", "답해 드릴 수 없", "알 수 없", "확인할 수 없", "들어 있지 않", "포함되어 있지 않"]
+QUOTED_REVIEW_ID = re.compile(r"#(\d+)")
+# 답변의 근거에 적히는 SQL은 따옴표 안에 온다. 예: `SELECT COUNT(*) FROM reviews ...` → 8
+SQL_IN_ANSWER = re.compile(r"`+\s*(SELECT.+?)`+", re.IGNORECASE | re.DOTALL)
 COMPARISONS = {"<=": operator.le, ">=": operator.ge, "<": operator.lt, ">": operator.gt, "=": operator.eq}
 
 
@@ -34,6 +37,35 @@ def score_answer(case: Case, answer: str, db_path: Path) -> tuple[bool, str | No
             return False, f"답변에 없는 기대값: {missing}"
         return True, None
     raise ValueError(f"케이스 '{case.id}'에 기대 SQL도 거절 여부도 없습니다. 루브릭 채점은 심판이 맡습니다.")
+
+
+def verify_evidence(answer: str, db_path: Path) -> tuple[bool, str | None]:
+    """답변에 붙은 근거가 적재 데이터와 맞는지 본다.
+
+    인용한 리뷰 ID가 실재하는지, 그리고 답변에 적은 SQL을 다시 돌린 결과의 수치가 답변의 수치와 같은지
+    확인한다. SQL 결과의 문자열 칸은 보지 않는다. 상품명처럼 에이전트가 줄여 쓰는 것이 정상인 값이다.
+
+    Returns:
+        통과 여부와, 어긋났다면 그 이유.
+    """
+    quoted = sorted({int(found) for found in QUOTED_REVIEW_ID.findall(answer)})
+    if quoted:
+        result = run_sql(db_path, f"SELECT review_id FROM reviews WHERE review_id IN ({','.join(map(str, quoted))})")
+        missing = set(quoted) - {row[0] for row in result.get("rows", [])}
+        if missing:
+            return False, f"적재 데이터에 없는 리뷰를 인용했다: {sorted(missing)}"
+    for sql in SQL_IN_ANSWER.findall(answer):
+        result = run_sql(db_path, sql)
+        if "error" in result or result["truncated"]:
+            continue
+        numbers = [
+            cell for row in result["rows"] for cell in row
+            if isinstance(cell, (int, float)) and not isinstance(cell, bool)
+        ]
+        mismatched = [number for number in numbers if not _contains_number(answer, number)]
+        if mismatched:
+            return False, f"답변에 적은 SQL의 결과가 답변의 수치와 다르다: {mismatched}"
+    return True, None
 
 
 def score_trajectory(case: Case, trajectory: list[dict]) -> tuple[bool, str | None]:

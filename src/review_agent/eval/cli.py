@@ -11,6 +11,7 @@ from review_agent.cli import SYSTEM_PROMPT, build_agent
 from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import evaluate
 from review_agent.eval.instrument import TimingEmbeddings, agent_executor
+from review_agent.eval.judge import openai_judge
 from review_agent.eval.report import run_meta, save_run
 from review_agent.search_tool import EMBEDDING_MODEL, open_store
 
@@ -30,6 +31,7 @@ def main() -> None:
 
     load_dotenv()
     model = os.environ["OPENAI_MODEL"]
+    judge_model = os.environ.get("EVAL_JUDGE_MODEL")
     embeddings = TimingEmbeddings(OpenAIEmbeddings(model=EMBEDDING_MODEL))
 
     start = time.perf_counter()
@@ -39,11 +41,14 @@ def main() -> None:
     print(f"벡터 저장소 로드: {store_open_ms / 1000:.1f}s (세션당 1회, 질문당 시간과 섞지 않는다)")
 
     cases = load_cases(args.cases, args.db)
-    print(f"케이스 {len(cases)}개 × {args.runs}회, 모델 {model}")
-    result = evaluate(cases, args.db, agent_executor(agent, embeddings), args.runs)
+    if judge_model is None and any(case.rubric for case in cases):
+        raise SystemExit("루브릭이 있는 케이스가 있습니다. .env에 EVAL_JUDGE_MODEL을 설정하세요.")
+    print(f"케이스 {len(cases)}개 × {args.runs}회, 모델 {model}, 심판 {judge_model}")
+    judge = openai_judge(judge_model) if judge_model else None
+    result = evaluate(cases, args.db, agent_executor(agent, embeddings), judge, args.runs)
 
     meta = run_meta(
-        args.db, model, os.environ.get("EVAL_JUDGE_MODEL"),
+        args.db, model, judge_model,
         hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8], store_open_ms,
     )
     run_path, details_path = save_run(result, args.runs_dir, args.details_dir, meta)
@@ -62,6 +67,10 @@ def _print_summary(result: dict, meta: dict) -> None:
     print("모듈별   " + " · ".join(f"{label} {ms / 1000:.1f}s" for label, ms in summary["module_ms"].items()))
     print(f"토큰     입력 {summary['tokens'].get('input', 0)} · 출력 {summary['tokens'].get('output', 0)}"
           f" · 질문당 중앙값 {summary['question_tokens']['median']:.0f} · 임베딩 호출 {summary['embedding_calls']}회")
+    agreement = summary["judge_agreement"]
+    if summary["judge_tokens"]:
+        print(f"심판     입력 {summary['judge_tokens'].get('input', 0)} · 출력 {summary['judge_tokens'].get('output', 0)}"
+              + (f" · 사람 라벨과 일치 {agreement['matched']}/{agreement['of']}" if agreement["of"] else " · 사람 라벨 없음"))
     scale = meta["scale"]
     print(f"규모     {scale['label']} (상품 {scale['products']}개 · 리뷰 {scale['reviews']}건)"
           f" · 벡터 저장소 로드 {meta['vector_store_open_ms'] / 1000:.1f}s")
