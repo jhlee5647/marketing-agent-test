@@ -226,3 +226,28 @@ def test_failed_reload_leaves_no_previous_reviews_for_search(tmp_path):
         load([meta("NEW")], [review("NEW")], db, vectors, FailingEmbeddings(size=8))
 
     assert not vectors.exists()
+
+
+def test_load_writes_its_own_metrics_next_to_the_database(tmp_path):
+    db = tmp_path / "reviews.db"
+    metas, reviews = [meta("A"), meta("B")], [review("A")] * 3 + [review("B")]
+
+    load(metas, reviews, db, tmp_path / "vectors.json", FAKE_EMBEDDINGS)
+
+    metrics = json.loads((tmp_path / "reviews.metrics.json").read_text(encoding="utf-8"))
+    assert (metrics["products"], metrics["reviews"]) == (2, 4)
+    assert metrics["load_seconds"] > 0
+    assert metrics["embedding_seconds"] >= 0
+    assert metrics["db_bytes"] > 0
+    assert metrics["vectors_bytes"] > 0
+
+
+def test_discarded_reviews_do_not_leave_their_space_in_the_database(tmp_path):
+    kept = [review("A")] * 400
+    lean, fat = tmp_path / "lean.db", tmp_path / "fat.db"
+    load([meta("A")], kept, lean, tmp_path / "lean.json", FAKE_EMBEDDINGS, top_n=1)
+
+    load([meta("A"), meta("B")], kept + [review("B")] * 200, fat, tmp_path / "fat.json", FAKE_EMBEDDINGS, top_n=1)
+
+    assert rows(fat, "SELECT parent_asin FROM products") == [["A"]]
+    assert fat.stat().st_size == lean.stat().st_size

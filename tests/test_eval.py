@@ -4,7 +4,7 @@ from langchain_core.embeddings import DeterministicFakeEmbedding
 
 from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import TurnResult, evaluate
-from review_agent.eval.report import save_run
+from review_agent.eval.report import run_meta, save_run
 from review_agent.loader import load
 
 FACE = ["Beauty & Personal Care", "Skin Care", "Face", "Creams & Moisturizers"]
@@ -346,3 +346,25 @@ expected_sql = "SELECT ROUND(AVG(rating), 2) FROM reviews"
     assert coarser["cases"][0]["passed"] == 1
     assert finer["cases"][0]["passed"] == 1
     assert wrong["cases"][0]["passed"] == 0
+
+
+def test_run_meta_carries_the_scale_label_and_the_load_metrics(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=21300.0)
+
+    assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
+    assert info["run_id"].startswith("n1-")
+    assert info["model"] == "gpt-5.4-mini"
+    assert info["vector_store_open_ms"] == 21300.0
+    assert info["load_metrics"]["reviews"] == 3
+
+
+def test_run_meta_says_when_the_load_metrics_are_missing(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    db.with_suffix(".metrics.json").unlink()
+
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=0.0)
+
+    assert info["load_metrics"] is None
+    assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
