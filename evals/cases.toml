@@ -1,0 +1,74 @@
+# 평가 케이스. 사람이 읽고 고치는 파일이다.
+#
+# 자리표시자: `{이름}`은 아래 [placeholders]의 SQL 첫 컬럼, `{이름:컬럼}`은 지정한 컬럼의 값으로
+# 평가 실행 시점에 렌더링된다. 상품명을 박아 쓰지 않는 이유는 적재 규모가 바뀌어도 같은 의미의
+# 케이스로 남게 하기 위해서다.
+#
+# 기대값: `expected_sql`은 평가 실행 시점에 적재 데이터에서 돌린다. 그 결과의 모든 값이 답변에
+# 있어야 통과다. 상품명처럼 에이전트가 줄이거나 옮겨 쓸 수 있는 값은 기대 SQL에 넣지 않는다.
+
+[placeholders."리뷰 수 1위 상품"]
+sql = """
+SELECT products.title, parent_asin FROM products JOIN reviews USING (parent_asin)
+GROUP BY parent_asin ORDER BY COUNT(*) DESC LIMIT 1
+"""
+
+[[cases]]
+id = "agg-total-reviews"
+type = "집계"
+turns = ["적재된 리뷰는 모두 몇 건이야?"]
+expected_sql = "SELECT COUNT(*) FROM reviews"
+
+  [[cases.expected_trajectory]]
+  tool = "run_sql"
+
+  # 원본 메타의 평점 수는 적재 데이터의 리뷰 수가 아니다.
+  [[cases.forbidden]]
+  tool = "run_sql"
+  args_match = { sql = "rating_number" }
+
+[[cases]]
+id = "agg-top3-review-count"
+type = "집계"
+turns = ["리뷰가 가장 많은 상품 3개와 각각의 평균 별점은?"]
+expected_sql = """
+SELECT COUNT(*) AS n, ROUND(AVG(rating), 2) FROM reviews
+GROUP BY parent_asin ORDER BY n DESC LIMIT 3
+"""
+
+  [[cases.expected_trajectory]]
+  tool = "run_sql"
+
+  [[cases.forbidden]]
+  tool = "run_sql"
+  args_match = { sql = "average_rating|rating_number" }
+
+[[cases]]
+id = "refuse-korea-sales"
+type = "거절"
+turns = ["{리뷰 수 1위 상품}의 한국 매출은 얼마야?"]
+must_refuse = true
+
+# 검색이 필요한 케이스. 답변 채점은 기대 SQL로 결정적으로 하고, 검색을 썼는지는 궤적으로 본다.
+[[cases]]
+id = "mix-low-rating-count"
+type = "혼합"
+turns = ["{리뷰 수 1위 상품}의 1~2점 리뷰는 몇 건이고, 그 리뷰들은 주로 뭘 문제 삼아?"]
+expected_sql = """
+SELECT COUNT(*) FROM reviews WHERE rating <= 2 AND parent_asin = (
+    SELECT parent_asin FROM reviews GROUP BY parent_asin ORDER BY COUNT(*) DESC LIMIT 1
+)
+"""
+
+  [[cases.expected_trajectory]]
+  tool = "run_sql"
+  args_match = { sql = "products" }
+
+  [[cases.expected_trajectory]]
+  tool = "search_reviews"
+  args_match = { parent_asin = ".+", max_rating = "<=2" }
+
+  # 상품을 한정한 질문인데 상품 필터 없이 검색하면 실패다.
+  [[cases.forbidden]]
+  tool = "search_reviews"
+  args_missing = ["parent_asin"]

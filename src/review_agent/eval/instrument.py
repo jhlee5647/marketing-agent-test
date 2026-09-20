@@ -1,0 +1,126 @@
+import time
+from collections.abc import Sequence
+from uuid import uuid4
+
+from langchain_core.embeddings import Embeddings
+from langchain_core.tracers.run_collector import RunCollectorCallbackHandler
+
+from review_agent.eval.harness import TurnResult
+
+
+class TimingEmbeddings(Embeddings):
+    """임베딩 호출의 횟수와 소요 시간을 재는 래퍼.
+
+    LangChain에는 임베딩용 콜백이 없어서 이 구간만은 직접 재야 한다. 운영 코드에 계측을 심지 않으려고
+    평가할 때만 끼운다.
+    """
+
+    def __init__(self, inner: Embeddings):
+        self._inner = inner
+        self._calls = 0
+        self._durations_ms: list[float] = []
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._timed(self._inner.embed_query, text)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self._timed(self._inner.embed_documents, texts)
+
+    def _timed(self, call, argument):
+        start = time.perf_counter()
+        try:
+            return call(argument)
+        finally:
+            self._durations_ms.append((time.perf_counter() - start) * 1000)
+            self._calls += 1
+
+    def take(self) -> tuple[int, list[float]]:
+        """마지막으로 가져간 뒤의 호출 수와 소요 시간을 돌려주고 비운다.
+
+        Returns:
+            (호출 수, 호출별 소요 시간 밀리초).
+        """
+        calls, durations = self._calls, self._durations_ms
+        self._calls, self._durations_ms = 0, []
+        return calls, durations
+
+
+def agent_executor(agent, embeddings: TimingEmbeddings):
+    """에이전트를 실제로 불러 답변·궤적·소요 시간·토큰을 관측하는 실행기를 만든다.
+
+    케이스 하나가 대화 하나다. 한 케이스의 턴들은 같은 `thread_id`를 쓰므로 뒤 턴이 앞 대화를 이어받는다.
+
+    Returns:
+        질문들을 받아 턴별 결과를 돌려주는 함수.
+    """
+    def execute(questions: Sequence[str]) -> list[TurnResult]:
+        config = {"configurable": {"thread_id": str(uuid4())}}
+        results, seen = [], 0
+        for question in questions:
+            collector = RunCollectorCallbackHandler()
+            embeddings.take()
+            start = time.perf_counter()
+            output = agent.invoke(
+                {"messages": [{"role": "user", "content": question}]},
+                {**config, "callbacks": [collector]},
+            )
+            total_ms = (time.perf_counter() - start) * 1000
+            messages = output["messages"][seen:]
+            seen = len(output["messages"])
+            embedding_calls, embed_ms = embeddings.take()
+            timings = timings_of(collector.traced_runs)
+            timings["total"] = [total_ms]
+            if embed_ms:
+                timings["embed_query"] = embed_ms
+            results.append(
+                TurnResult(
+                    answer=messages[-1].content,
+                    trajectory=tool_calls_of(messages),
+                    timings_ms=timings,
+                    tokens=tokens_of(messages),
+                    embedding_calls=embedding_calls,
+                )
+            )
+        return results
+
+    return execute
+
+
+def timings_of(runs) -> dict[str, list[float]]:
+    """수집한 실행 트리에서 LLM 턴과 도구 호출의 소요 시간을 꺼낸다.
+
+    Returns:
+        `llm`과 도구 이름별 소요 시간 밀리초 목록.
+    """
+    timings: dict[str, list[float]] = {}
+    for run in _walk(runs):
+        if run.end_time is None or run.run_type not in ("llm", "tool"):
+            continue
+        label = "llm" if run.run_type == "llm" else run.name
+        timings.setdefault(label, []).append((run.end_time - run.start_time).total_seconds() * 1000)
+    return timings
+
+
+def tool_calls_of(messages) -> list[dict]:
+    """메시지에서 에이전트가 부른 도구의 이름과 인자를 순서대로 꺼낸다."""
+    return [
+        {"tool": call["name"], "args": call["args"]}
+        for message in messages
+        for call in getattr(message, "tool_calls", None) or []
+    ]
+
+
+def tokens_of(messages) -> dict[str, int]:
+    """메시지의 사용량 메타데이터에서 입력·출력 토큰을 더한다."""
+    totals = {"input": 0, "output": 0}
+    for message in messages:
+        usage = getattr(message, "usage_metadata", None) or {}
+        totals["input"] += usage.get("input_tokens", 0)
+        totals["output"] += usage.get("output_tokens", 0)
+    return totals
+
+
+def _walk(runs):
+    for run in runs:
+        yield run
+        yield from _walk(run.child_runs or [])
