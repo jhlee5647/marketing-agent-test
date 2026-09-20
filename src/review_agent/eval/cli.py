@@ -1,10 +1,8 @@
 import argparse
 import hashlib
 import os
-import subprocess
 import time
 from pathlib import Path
-from uuid import uuid4
 
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
@@ -13,7 +11,7 @@ from review_agent.cli import SYSTEM_PROMPT, build_agent
 from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import evaluate
 from review_agent.eval.instrument import TimingEmbeddings, agent_executor
-from review_agent.eval.report import save_run
+from review_agent.eval.report import run_meta, save_run
 from review_agent.search_tool import EMBEDDING_MODEL, open_store
 
 
@@ -44,20 +42,16 @@ def main() -> None:
     print(f"케이스 {len(cases)}개 × {args.runs}회, 모델 {model}")
     result = evaluate(cases, args.db, agent_executor(agent, embeddings), args.runs)
 
-    commit = _commit()
-    meta = {
-        "run_id": f"{commit}-{uuid4().hex[:6]}",
-        "model": model,
-        "commit": commit,
-        "prompt_hash": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8],
-        "vector_store_open_ms": store_open_ms,
-    }
+    meta = run_meta(
+        args.db, model, os.environ.get("EVAL_JUDGE_MODEL"),
+        hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8], store_open_ms,
+    )
     run_path, details_path = save_run(result, args.runs_dir, args.details_dir, meta)
-    _print_summary(result)
+    _print_summary(result, meta)
     print(f"\n저장: {run_path}  (상세: {details_path})")
 
 
-def _print_summary(result: dict) -> None:
+def _print_summary(result: dict, meta: dict) -> None:
     summary = result["summary"]
     for case in result["cases"]:
         reasons = {attempt["fail_reason"] for attempt in case["runs"] if attempt["fail_reason"]}
@@ -67,7 +61,16 @@ def _print_summary(result: dict) -> None:
     print(f"질문당   중앙값 {summary['question_seconds']['median']:.1f}s · 최대 {summary['question_seconds']['max']:.1f}s")
     print("모듈별   " + " · ".join(f"{label} {ms / 1000:.1f}s" for label, ms in summary["module_ms"].items()))
     print(f"토큰     입력 {summary['tokens'].get('input', 0)} · 출력 {summary['tokens'].get('output', 0)}"
-          f" · 임베딩 호출 {summary['embedding_calls']}회")
+          f" · 질문당 중앙값 {summary['question_tokens']['median']:.0f} · 임베딩 호출 {summary['embedding_calls']}회")
+    scale = meta["scale"]
+    print(f"규모     {scale['label']} (상품 {scale['products']}개 · 리뷰 {scale['reviews']}건)"
+          f" · 벡터 저장소 로드 {meta['vector_store_open_ms'] / 1000:.1f}s")
+    metrics = meta["load_metrics"]
+    if metrics is None:
+        print("적재      측정값 없음 — 이 적재 데이터는 측정값을 남기기 전에 만들어졌다")
+    else:
+        print(f"적재     {metrics['load_seconds'] / 60:.1f}분 (임베딩 {metrics['embedding_seconds'] / 60:.1f}분)"
+              f" · SQLite {metrics['db_bytes'] / 1e6:.0f}MB · 벡터 {metrics['vectors_bytes'] / 1e6:.0f}MB")
 
 
 def _commit() -> str:
