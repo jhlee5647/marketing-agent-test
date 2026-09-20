@@ -82,7 +82,7 @@ def executor(*turns_per_run):
 
 def turn(answer, calls=(), timings_ms=None, tokens=None):
     return TurnResult(
-        answer=answer, calls=[{"tool": t, "args": a} for t, a in calls],
+        answer=answer, trajectory=[{"tool": t, "args": a} for t, a in calls],
         timings_ms=timings_ms or {}, tokens=tokens or {},
     )
 
@@ -223,7 +223,7 @@ expected_sql = "SELECT COUNT(*) FROM reviews"
         runs=3,
     )
 
-    assert (result["cases"][0]["passed"], result["cases"][0]["of"]) == (2, 3)
+    assert (result["cases"][0]["passed"], result["cases"][0]["total"]) == (2, 3)
 
 
 COUNT_CASE = """
@@ -246,10 +246,10 @@ def test_summary_reports_pass_rate_module_times_and_tokens(tmp_path):
     summary = evaluate(cases, db, executor([fast], [slow]), runs=2)["summary"]
 
     assert summary["passed"] == 1
-    assert summary["of"] == 2
-    assert summary["by_type"] == {"집계": {"passed": 1, "of": 2}}
+    assert summary["total"] == 2
+    assert summary["by_type"] == {"집계": {"passed": 1, "total": 2}}
     assert summary["question_seconds"] == {"median": 2.0, "max": 3.0}
-    assert summary["module_ms"] == {"total": 4000.0, "llm": 3700.0, "run_sql": 60.0}
+    assert summary["module_ms"] == {"llm": 3700.0, "run_sql": 60.0}
     assert summary["tokens"] == {"input": 220, "output": 80}
 
 
@@ -278,3 +278,71 @@ def test_embedding_call_counts_are_recorded_and_summed(tmp_path):
 
     assert [a["embedding_calls"] for a in result["cases"][0]["runs"]] == [2, 3]
     assert result["summary"]["embedding_calls"] == 5
+
+
+def test_result_records_the_rendered_questions(tmp_path):
+    db = loaded_db(tmp_path, [meta("TOP", "Cloud Whip")], [review("TOP")] * 3)
+    cases = one_case(tmp_path, db, """
+[placeholders."리뷰 수 1위 상품"]
+sql = "SELECT products.title FROM products JOIN reviews USING (parent_asin) GROUP BY parent_asin ORDER BY COUNT(*) DESC LIMIT 1"
+
+[[cases]]
+id = "agg-count"
+type = "집계"
+turns = ["{리뷰 수 1위 상품}의 리뷰는 몇 건이야?"]
+expected_sql = "SELECT COUNT(*) FROM reviews"
+""")
+
+    result = evaluate(cases, db, executor([turn("3건입니다.")]), runs=1)
+
+    assert result["cases"][0]["turns"] == ["Cloud Whip의 리뷰는 몇 건이야?"]
+
+
+def test_summary_reports_median_tokens_per_question_and_keeps_total_out_of_the_module_breakdown(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    cases = one_case(tmp_path, db, COUNT_CASE)
+    cheap = turn("3건입니다.", timings_ms={"total": [1000.0], "llm": [800.0]}, tokens={"input": 100, "output": 20})
+    dear = turn("3건입니다.", timings_ms={"total": [3000.0], "llm": [2900.0]}, tokens={"input": 300, "output": 80})
+
+    summary = evaluate(cases, db, executor([cheap], [dear]), runs=2)["summary"]
+
+    assert summary["question_tokens"] == {"median": 250.0, "total": 500}
+    assert summary["module_ms"] == {"llm": 3700.0}
+
+
+def test_expected_value_of_null_fails_the_case_instead_of_passing_unchecked(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, """
+[[cases]]
+id = "agg-price"
+type = "집계"
+turns = ["가격이 얼마야?"]
+expected_sql = "SELECT price FROM products"
+""")
+
+    result = evaluate(cases, db, executor([turn("가격은 비어 있습니다.")]), runs=1)
+
+    assert result["cases"][0]["passed"] == 0
+    assert "NULL" in result["cases"][0]["runs"][0]["fail_reason"]
+
+
+def test_a_number_matches_at_whatever_precision_the_answer_states(tmp_path):
+    ratings = [review("A", rating=4.0), review("A", rating=5.0), review("A", rating=5.0)]
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], ratings)
+    cases = one_case(tmp_path, db, """
+[[cases]]
+id = "agg-average"
+type = "집계"
+turns = ["평균 별점은?"]
+expected_sql = "SELECT ROUND(AVG(rating), 2) FROM reviews"
+""")
+
+    exact = evaluate(cases, db, executor([turn("평균 별점은 4.67입니다.")]), runs=1)
+    coarser = evaluate(cases, db, executor([turn("평균 별점은 4.7입니다.")]), runs=1)
+    finer = evaluate(cases, db, executor([turn("평균 별점은 4.667입니다.")]), runs=1)
+    wrong = evaluate(cases, db, executor([turn("평균 별점은 4.5입니다.")]), runs=1)
+
+    assert exact["cases"][0]["passed"] == 1
+    assert coarser["cases"][0]["passed"] == 1
+    assert finer["cases"][0]["passed"] == 1
+    assert wrong["cases"][0]["passed"] == 0

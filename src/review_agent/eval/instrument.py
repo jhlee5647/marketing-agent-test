@@ -67,7 +67,7 @@ def agent_executor(agent, embeddings: TimingEmbeddings):
             total_ms = (time.perf_counter() - start) * 1000
             messages = output["messages"][seen:]
             seen = len(output["messages"])
-            calls, embed_ms = embeddings.take()
+            embedding_calls, embed_ms = embeddings.take()
             timings = timings_of(collector.traced_runs)
             timings["total"] = [total_ms]
             if embed_ms:
@@ -75,10 +75,10 @@ def agent_executor(agent, embeddings: TimingEmbeddings):
             results.append(
                 TurnResult(
                     answer=messages[-1].content,
-                    calls=tool_calls_of(messages),
+                    trajectory=tool_calls_of(messages),
                     timings_ms=timings,
                     tokens=tokens_of(messages),
-                    embedding_calls=calls,
+                    embedding_calls=embedding_calls,
                 )
             )
         return results

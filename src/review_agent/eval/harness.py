@@ -1,6 +1,7 @@
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from statistics import median
 
 from review_agent.eval.cases import Case
 from review_agent.eval.scoring import score_answer, score_trajectory
@@ -11,7 +12,7 @@ class TurnResult:
     """질문 하나를 처리한 결과. 마케터가 받은 답변과, 그 답변에 이르기까지 관측한 것들이다."""
 
     answer: str
-    calls: list[dict] = field(default_factory=list)
+    trajectory: list[dict] = field(default_factory=list)
     timings_ms: dict[str, list[float]] = field(default_factory=dict)
     tokens: dict[str, int] = field(default_factory=dict)
     embedding_calls: int = 0
@@ -38,35 +39,30 @@ def _summarize(results: list[dict]) -> dict:
     attempts = [attempt for case in results for attempt in case["runs"]]
     by_type: dict[str, dict[str, int]] = {}
     for case in results:
-        counts = by_type.setdefault(case["type"], {"passed": 0, "of": 0})
+        counts = by_type.setdefault(case["type"], {"passed": 0, "total": 0})
         counts["passed"] += case["passed"]
-        counts["of"] += case["of"]
+        counts["total"] += case["total"]
     module_ms: dict[str, float] = {}
     tokens: dict[str, int] = {}
     for attempt in attempts:
         for label, durations in attempt["timings_ms"].items():
-            module_ms[label] = module_ms.get(label, 0.0) + sum(durations)
+            if label != "total":  # 질문당 총시간은 모듈이 아니므로 분해에 섞지 않는다.
+                module_ms[label] = module_ms.get(label, 0.0) + sum(durations)
         for name, count in attempt["tokens"].items():
             tokens[name] = tokens.get(name, 0) + count
-    seconds = sorted(sum(attempt["timings_ms"].get("total", [])) / 1000 for attempt in attempts)
+    seconds = [sum(attempt["timings_ms"].get("total", [])) / 1000 for attempt in attempts]
+    per_question = [sum(attempt["tokens"].values()) for attempt in attempts]
     return {
         "passed": sum(case["passed"] for case in results),
-        "of": sum(case["of"] for case in results),
+        "total": sum(case["total"] for case in results),
         "by_type": by_type,
-        "question_seconds": {"median": _median(seconds), "max": max(seconds, default=0.0)},
+        "question_seconds": {"median": median(seconds) if seconds else 0.0, "max": max(seconds, default=0.0)},
+        "question_tokens": {"median": median(per_question) if per_question else 0, "total": sum(per_question)},
         "module_ms": module_ms,
         "tokens": tokens,
         "embedding_calls": sum(attempt["embedding_calls"] for attempt in attempts),
     }
 
-
-def _median(values: list[float]) -> float:
-    if not values:
-        return 0.0
-    middle = len(values) // 2
-    if len(values) % 2:
-        return values[middle]
-    return (values[middle - 1] + values[middle]) / 2
 
 
 def _evaluate_case(case: Case, db_path: Path, execute: Execute, runs: int) -> dict:
@@ -77,8 +73,9 @@ def _evaluate_case(case: Case, db_path: Path, execute: Execute, runs: int) -> di
     return {
         "id": case.id,
         "type": case.type,
+        "turns": case.turns,
         "passed": sum(a["answer_ok"] and a["trajectory_ok"] for a in attempts),
-        "of": runs,
+        "total": runs,
         "resolved": case.resolved,
         "runs": attempts,
     }
@@ -87,12 +84,12 @@ def _evaluate_case(case: Case, db_path: Path, execute: Execute, runs: int) -> di
 def _score(case: Case, turns: list[TurnResult], db_path: Path) -> dict:
     last = turns[-1]
     answer_ok, answer_reason = score_answer(case, last.answer, db_path)
-    trajectory_ok, trajectory_reason = score_trajectory(case, last.calls)
+    trajectory_ok, trajectory_reason = score_trajectory(case, last.trajectory)
     return {
         "answer_ok": answer_ok,
         "trajectory_ok": trajectory_ok,
         "fail_reason": answer_reason or trajectory_reason,
-        "calls": last.calls,
+        "trajectory": last.trajectory,
         "timings_ms": _merge_timings(turns),
         "tokens": _sum_tokens(turns),
         "embedding_calls": sum(turn.embedding_calls for turn in turns),

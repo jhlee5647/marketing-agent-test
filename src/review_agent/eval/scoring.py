@@ -26,14 +26,17 @@ def score_answer(case: Case, answer: str, db_path: Path) -> tuple[bool, str | No
         result = run_sql(db_path, case.expected_sql)
         if "error" in result:
             return False, f"기대 SQL이 실패했다: {result['error']}"
-        missing = [cell for row in result["rows"] for cell in row if not _contains(answer, cell)]
+        cells = [cell for row in result["rows"] for cell in row]
+        if any(cell is None for cell in cells):
+            return False, "기대 SQL 결과에 NULL이 있다. 검사할 값이 없으므로 케이스를 고쳐야 한다"
+        missing = [cell for cell in cells if not _contains(answer, cell)]
         if missing:
             return False, f"답변에 없는 기대값: {missing}"
         return True, None
     raise ValueError(f"케이스 '{case.id}'에 기대 SQL도 거절 여부도 없습니다. 루브릭 채점은 심판이 맡습니다.")
 
 
-def score_trajectory(case: Case, calls: list[dict]) -> tuple[bool, str | None]:
+def score_trajectory(case: Case, trajectory: list[dict]) -> tuple[bool, str | None]:
     """궤적을 케이스의 기대 부분 순서와 금지 패턴에 비추어 채점한다.
 
     기대한 호출 사이에 다른 호출이 끼는 것은 허용한다. 검색어를 바꿔 여러 번 검색하는 것은 의도된 동작이다.
@@ -42,13 +45,13 @@ def score_trajectory(case: Case, calls: list[dict]) -> tuple[bool, str | None]:
         통과 여부와, 실패했다면 그 이유.
     """
     for pattern in case.forbidden:
-        if any(_matches(call, pattern) for call in calls):
+        if any(_matches(call, pattern) for call in trajectory):
             return False, f"금지 패턴이 나타났다: {pattern}"
     position = 0
     for expected in case.expected_trajectory:
-        while position < len(calls) and not _matches(calls[position], expected):
+        while position < len(trajectory) and not _matches(trajectory[position], expected):
             position += 1
-        if position == len(calls):
+        if position == len(trajectory):
             return False, f"기대한 호출이 없거나 순서가 어긋났다: {expected}"
         position += 1
     return True, None
@@ -77,15 +80,27 @@ def _matches_arg(value, condition: str) -> bool:
 
 
 def _contains(answer: str, value) -> bool:
-    if value is None:
-        return True
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return _contains_number(answer, value)
     return str(value).lower() in answer.lower()
 
 
 def _contains_number(answer: str, value: float) -> bool:
-    """수가 답변에 있는지 본다. 자릿수 구분 쉼표는 지우고, 소수는 한 자리로 반올림한 표기도 인정한다."""
+    """수가 답변에 있는지 본다. 자릿수 구분 쉼표는 지운다.
+
+    답변의 자릿수는 에이전트가 정하는 것이므로 표기를 그대로 맞추라고 요구하지 않는다. 대신 기대값과
+    답변 속 수가 각자의 자릿수로 가리키는 범위가 겹치면 같은 수로 본다. 4.85를 4.853이나 4.9로 쓴 것은
+    통과하고, 4.7로 쓴 것은 통과하지 못한다.
+    """
     text = re.sub(r"(?<=\d),(?=\d)", "", answer)
-    forms = {f"{value:g}", f"{value:.1f}", f"{value:.2f}"}
-    return any(re.search(rf"(?<![\d.]){re.escape(form)}(?![\d]|\.\d)", text) for form in forms)
+    tolerance = _half_step(f"{value:f}".rstrip("0"))
+    return any(
+        abs(float(found) - value) <= tolerance + _half_step(found)
+        for found in re.findall(r"\d+(?:\.\d+)?", text)
+    )
+
+
+def _half_step(number: str) -> float:
+    """표기된 자릿수가 함의하는 반올림 오차의 절반. `4.85`는 0.005, `414`는 0.5다."""
+    _, _, decimals = number.partition(".")
+    return 0.5 * 10 ** -len(decimals)
