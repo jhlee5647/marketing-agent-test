@@ -4,6 +4,7 @@ from langchain_core.embeddings import DeterministicFakeEmbedding
 
 from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import TurnResult, evaluate
+from review_agent.eval.judge import JudgeVerdict
 from review_agent.eval.report import run_meta, save_run
 from review_agent.loader import load
 
@@ -368,3 +369,89 @@ def test_run_meta_says_when_the_load_metrics_are_missing(tmp_path):
 
     assert info["load_metrics"] is None
     assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
+
+
+def verdicts(*passes):
+    """정해진 판정을 순서대로 내놓는 가짜 심판."""
+    remaining = list(passes)
+
+    def judge(rubric, question, answer):
+        return JudgeVerdict(passed=remaining.pop(0), reason="가짜 판정", tokens={"input": 50, "output": 10})
+
+    return judge
+
+
+RUBRIC_CASE = """
+[[cases]]
+id = "topic-stickiness"
+type = "주제"
+turns = ["사람들이 끈적임에 대해 뭐라고 해?"]
+rubric = "끈적임에 대한 반복되는 반응을 들고 review_id와 원문 인용을 붙인다."
+"""
+
+
+def test_judge_verdict_decides_a_rubric_case(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+
+    failed = evaluate(cases, db, executor([turn("끈적인다는 말이 많습니다.")]), judge=verdicts(False), runs=1)
+    passed = evaluate(cases, db, executor([turn("끈적인다는 말이 많습니다.")]), judge=verdicts(True), runs=1)
+
+    assert failed["cases"][0]["passed"] == 0
+    assert "가짜 판정" in failed["cases"][0]["runs"][0]["fail_reason"]
+    assert passed["cases"][0]["passed"] == 1
+
+
+def test_a_quoted_review_id_that_does_not_exist_fails_the_run(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+    real, fake = '#1 "sticky"', '#9999 "sticky"'
+
+    quoted_real = evaluate(cases, db, executor([turn(f"끈적인다는 말이 많습니다. {real}")]), judge=verdicts(True), runs=1)
+    quoted_fake = evaluate(cases, db, executor([turn(f"끈적인다는 말이 많습니다. {fake}")]), judge=verdicts(True), runs=1)
+
+    assert quoted_real["cases"][0]["passed"] == 1
+    assert quoted_fake["cases"][0]["passed"] == 0
+    assert "9999" in quoted_fake["cases"][0]["runs"][0]["fail_reason"]
+
+
+def test_a_sql_in_the_answer_that_disagrees_with_the_stated_number_fails_the_run(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+    agrees = "리뷰는 3건입니다. 근거: `SELECT COUNT(*) FROM reviews` → 3"
+    disagrees = "리뷰는 7건입니다. 근거: `SELECT COUNT(*) FROM reviews` → 7"
+
+    right = evaluate(cases, db, executor([turn(agrees)]), judge=verdicts(True), runs=1)
+    wrong = evaluate(cases, db, executor([turn(disagrees)]), judge=verdicts(True), runs=1)
+
+    assert right["cases"][0]["passed"] == 1
+    assert wrong["cases"][0]["passed"] == 0
+    assert "SQL" in wrong["cases"][0]["runs"][0]["fail_reason"]
+
+
+def test_summary_reports_judge_agreement_with_the_human_labels(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, """
+[[cases]]
+id = "topic-stickiness"
+type = "주제"
+turns = ["사람들이 끈적임에 대해 뭐라고 해?"]
+rubric = "끈적임에 대한 반복되는 반응을 든다."
+human_label = "pass"
+""")
+
+    summary = evaluate(cases, db, executor([turn("끈적임 이야기가 많습니다.")], [turn("끈적임 이야기가 많습니다.")]),
+                       judge=verdicts(True, False), runs=2)["summary"]
+
+    assert summary["judge_agreement"] == {"matched": 1, "of": 2}
+
+
+def test_judge_tokens_are_counted_apart_from_the_agent_tokens(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+    answered = turn("끈적임 이야기가 많습니다.", tokens={"input": 900, "output": 100})
+
+    summary = evaluate(cases, db, executor([answered]), judge=verdicts(True), runs=1)["summary"]
+
+    assert summary["tokens"] == {"input": 900, "output": 100}
+    assert summary["judge_tokens"] == {"input": 50, "output": 10}
