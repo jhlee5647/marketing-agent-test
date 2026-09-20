@@ -17,6 +17,7 @@ dependencies = [
 [project.scripts]
 load = "review_agent.loader:main"
 agent = "review_agent.cli:main"
+eval = "review_agent.eval.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.9,<0.13.0"]

@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.tools import tool
+from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -63,8 +64,11 @@ reviews — 리뷰 한 행(2023년 리뷰만)
 """
 
 
-def build_agent(db_path: Path, vectors_path: Path, model: str):
+def build_agent(db_path: Path, vectors_path: Path, model: str, embeddings: Embeddings | None = None):
     """`run_sql`, `search_reviews` 도구와 시스템 프롬프트로 대화를 기억하는 에이전트를 만든다.
+
+    Args:
+        embeddings: 검색어를 임베딩할 객체. 평가 하네스가 계측 래퍼를 끼울 때만 넘긴다.
 
     Returns:
         `thread_id`별로 대화를 유지하는 LangGraph 에이전트.
@@ -74,7 +78,7 @@ def build_agent(db_path: Path, vectors_path: Path, model: str):
         """적재 데이터 SQLite에 SQL 한 문장을 읽기 전용으로 실행한다. 결과는 columns, 최대 50행의 rows, truncated이고, SQL 오류는 error 메시지로 돌아온다."""
         return run_sql(db_path, sql)
 
-    store = open_store(vectors_path, OpenAIEmbeddings(model=EMBEDDING_MODEL))
+    store = open_store(vectors_path, embeddings or OpenAIEmbeddings(model=EMBEDDING_MODEL))
 
     @tool("search_reviews")
     def search_reviews_tool(
