@@ -544,3 +544,25 @@ def test_comparison_report_shows_the_changes_and_the_conditions(tmp_path):
 
     for expected in ["회귀", "agg", "3/3", "1/3", "2.0", "3.0", "1000", "1400", "p1", "p2", "bbb2222"]:
         assert expected in markdown
+
+
+def test_a_refusal_is_recognised_however_the_agent_words_it(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, """
+[[cases]]
+id = "scope-2022"
+type = "범위 밖"
+turns = ["2022년 리뷰에서는 어떤 불만이 많았어?"]
+must_refuse = true
+""")
+    refusals = [
+        "적재 데이터로는 답할 수 없습니다.",
+        "2022년 리뷰는 볼 수 없습니다. 2023년 리뷰만 들어 있습니다.",
+        "적재된 데이터에서는 해당 상품이 확인되지 않습니다.",
+        "이 데이터만으로는 분석해 드릴 수 없어요.",
+    ]
+
+    for answer in refusals:
+        assert evaluate(cases, db, executor([turn(answer)]), runs=1)["cases"][0]["passed"] == 1, answer
+    made_up = evaluate(cases, db, executor([turn("2022년에는 끈적임 불만이 가장 많았습니다.")]), runs=1)
+    assert made_up["cases"][0]["passed"] == 0

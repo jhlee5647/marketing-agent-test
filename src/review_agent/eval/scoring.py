@@ -5,8 +5,9 @@ from pathlib import Path
 from review_agent.eval.cases import Case
 from review_agent.sql_tool import run_sql
 
-# 에이전트는 거절을 여러 말로 한다. 실제 답변에서 관측한 표현을 모은 목록이다.
-REFUSAL_PHRASES = ["답할 수 없", "답변할 수 없", "답해 드릴 수 없", "알 수 없", "확인할 수 없", "들어 있지 않", "포함되어 있지 않"]
+# 에이전트는 거절을 여러 말로 한다. 실제 답변에서 "답할 수 없", "볼 수 없", "알 수 없", "분석해 드릴 수 없",
+# "확인되지 않습니다"가 모두 관측됐다. 낱말을 나열하는 대신 "…수 없다"와 부정 표현을 통째로 본다.
+REFUSAL = re.compile(r"수\s*없|확인되지\s*않|들어\s*있지\s*않|포함되(어|지)\s*않|찾지\s*못|없습니다")
 QUOTED_REVIEW_ID = re.compile(r"#(\d+)")
 # 답변의 근거에 적히는 SQL은 따옴표 안에 온다. 예: `SELECT COUNT(*) FROM reviews ...` → 8
 SQL_IN_ANSWER = re.compile(r"`+\s*(SELECT.+?)`+", re.IGNORECASE | re.DOTALL)
@@ -22,7 +23,7 @@ def score_answer(case: Case, answer: str, db_path: Path) -> tuple[bool, str | No
         통과 여부와, 실패했다면 그 이유.
     """
     if case.must_refuse:
-        if any(phrase in answer for phrase in REFUSAL_PHRASES):
+        if REFUSAL.search(answer):
             return True, None
         return False, "거절해야 할 질문에 거절하지 않았다"
     if case.expected_sql:
