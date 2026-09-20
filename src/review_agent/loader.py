@@ -7,6 +7,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.request import urlopen
 
+from dotenv import load_dotenv
+from langchain_core.embeddings import Embeddings
+from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_openai import OpenAIEmbeddings
+
+from review_agent.search_tool import EMBEDDING_MODEL, document_prefix
+
 UCSD_RAW = "https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw"
 META_URL = f"{UCSD_RAW}/meta_categories/meta_Beauty_and_Personal_Care.jsonl.gz"
 REVIEW_URL = f"{UCSD_RAW}/review_categories/Beauty_and_Personal_Care.jsonl.gz"
@@ -42,13 +49,21 @@ CREATE TABLE reviews (
 """
 
 
-def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, top_n: int = 20) -> tuple[int, int]:
-    """메타·리뷰 줄 스트림에서 2023년 리뷰 수 상위 `top_n`개 얼굴 보습 제품과 그 2023년 리뷰 전부를 SQLite에 적재한다.
+def load(
+    meta_lines: Iterable[str],
+    review_lines: Iterable[str],
+    db_path: Path,
+    vectors_path: Path,
+    embeddings: Embeddings,
+    top_n: int = 20,
+) -> tuple[int, int]:
+    """메타·리뷰 줄 스트림에서 2023년 리뷰 수 상위 `top_n`개 얼굴 보습 제품과 그 2023년 리뷰 전부를 SQLite와 리뷰 벡터 저장소 파일에 적재한다.
 
     Returns:
         적재된 (상품 수, 리뷰 수).
     """
     db_path.unlink(missing_ok=True)
+    vectors_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA)
 
@@ -89,6 +104,22 @@ def load(meta_lines: Iterable[str], review_lines: Iterable[str], db_path: Path, 
     conn.execute("DELETE FROM products WHERE parent_asin NOT IN (SELECT parent_asin FROM top_products)")
 
     conn.commit()
+
+    reviews = conn.execute(
+        "SELECT review_id, parent_asin, rating, title, text, reviewed_at, verified_purchase FROM reviews"
+    ).fetchall()
+    store = InMemoryVectorStore(embeddings)
+    store.add_texts(
+        [document_prefix(title) + text for _, _, _, title, text, _, _ in reviews],
+        metadatas=[
+            {"parent_asin": parent_asin, "rating": rating, "title": title, "reviewed_at": reviewed_at,
+             "verified_purchase": bool(verified)}
+            for _, parent_asin, rating, title, _, reviewed_at, verified in reviews
+        ],
+        ids=[str(review_id) for review_id, *_ in reviews],
+    )
+    store.dump(str(vectors_path))
+
     counts = conn.execute("SELECT (SELECT COUNT(*) FROM products), (SELECT COUNT(*) FROM reviews)").fetchone()
     conn.close()
     return counts
@@ -106,9 +137,14 @@ def stream_lines(url: str) -> Iterator[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="UCSD Beauty_and_Personal_Care에서 얼굴 보습 제품을 적재한다.")
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
+    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
     parser.add_argument("--top-n", type=int, default=20, help="적재할 상위 상품 개수")
     args = parser.parse_args()
 
+    load_dotenv()
     args.db.parent.mkdir(parents=True, exist_ok=True)
-    products, reviews = load(stream_lines(META_URL), stream_lines(REVIEW_URL), args.db, args.top_n)
+    products, reviews = load(
+        stream_lines(META_URL), stream_lines(REVIEW_URL), args.db, args.vectors,
+        OpenAIEmbeddings(model=EMBEDDING_MODEL), args.top_n,
+    )
     print(f"완료: 상품 {products}개, 리뷰 {reviews}건")
