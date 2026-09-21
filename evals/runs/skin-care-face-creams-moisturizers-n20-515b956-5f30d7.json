@@ -1,0 +1,2895 @@
+{
+  "run_id": "skin-care-face-creams-moisturizers-n20-515b956-5f30d7",
+  "scale": {
+    "label": "skin-care-face-creams-moisturizers-n20",
+    "scope": [
+      "Skin Care",
+      "Face",
+      "Creams & Moisturizers"
+    ],
+    "top_n": 20,
+    "products": 20,
+    "reviews": 4744
+  },
+  "load_metrics": {
+    "products": 20,
+    "reviews": 4744,
+    "top_n": 20,
+    "scope": [
+      "Skin Care",
+      "Face",
+      "Creams & Moisturizers"
+    ],
+    "load_seconds": 167.51506975200027,
+    "embedding_seconds": 9.384613199999876,
+    "db_bytes": 1667072,
+    "vectors_bytes": 29399824
+  },
+  "environment": {
+    "host_label": "r7i.xlarge",
+    "total_ram_bytes": 33085460480,
+    "data_free_bytes": 65680109568
+  },
+  "model": "gpt-5.4-mini",
+  "judge_model": "gpt-5.4",
+  "prompt_hash": "ac32c759",
+  "commit": "515b956",
+  "vector_store_open_ms": 159.4624270001077,
+  "vector_store_read_ms": 90.46804299941869,
+  "vector_store_parse_ms": 68.99438400068902,
+  "vector_store_mb_per_second": 324.9746874726682,
+  "vector_store_bytes": 29399824,
+  "cases": [
+    {
+      "id": "agg-total-reviews",
+      "type": "집계",
+      "turns": [
+        "적재된 리뷰는 모두 몇 건이야?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              2047.8459999999998,
+              1120.822
+            ],
+            "run_sql": [
+              1.976
+            ],
+            "total": [
+              3180.7268480006314
+            ]
+          },
+          "tokens": {
+            "input": 3184,
+            "output": 65
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              860.715,
+              1045.152
+            ],
+            "run_sql": [
+              1.3
+            ],
+            "total": [
+              1913.9326389995404
+            ]
+          },
+          "tokens": {
+            "input": 3184,
+            "output": 68
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              760.9129999999999,
+              981.877
+            ],
+            "run_sql": [
+              1.242
+            ],
+            "total": [
+              1750.3090229984082
+            ]
+          },
+          "tokens": {
+            "input": 3184,
+            "output": 66
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "agg-top3-review-count",
+      "type": "집계",
+      "turns": [
+        "리뷰가 가장 많은 상품 3개와 각각의 평균 별점은?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT p.parent_asin, p.title, COUNT(r.review_id) AS review_count, ROUND(AVG(r.rating), 3) AS avg_rating\nFROM products p\nJOIN reviews r ON p.parent_asin = r.parent_asin\nGROUP BY p.parent_asin, p.title\nORDER BY review_count DESC, p.parent_asin\nLIMIT 3;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              1577.33,
+              1436.3809999999999
+            ],
+            "run_sql": [
+              4.495
+            ],
+            "total": [
+              3025.1170579977043
+            ]
+          },
+          "tokens": {
+            "input": 3435,
+            "output": 362
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT p.parent_asin, p.title, COUNT(r.review_id) AS review_count, ROUND(AVG(r.rating), 3) AS avg_rating\nFROM reviews r\nJOIN products p ON p.parent_asin = r.parent_asin\nGROUP BY p.parent_asin, p.title\nORDER BY review_count DESC, p.parent_asin\nLIMIT 3;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              940.238,
+              1380.363
+            ],
+            "run_sql": [
+              3.9909999999999997
+            ],
+            "total": [
+              2331.4764229980938
+            ]
+          },
+          "tokens": {
+            "input": 3435,
+            "output": 259
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT p.parent_asin, p.title, COUNT(*) AS review_count, ROUND(AVG(r.rating), 3) AS avg_rating\nFROM reviews r\nJOIN products p ON p.parent_asin = r.parent_asin\nGROUP BY p.parent_asin, p.title\nORDER BY review_count DESC, p.parent_asin\nLIMIT 3;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              925.179,
+              1557.143
+            ],
+            "run_sql": [
+              4.61
+            ],
+            "total": [
+              2493.6246090001077
+            ]
+          },
+          "tokens": {
+            "input": 3432,
+            "output": 316
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "agg-rating-distribution",
+      "type": "집계",
+      "turns": [
+        "별점별로 리뷰가 몇 건씩 있어?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT rating, COUNT(*) AS review_count FROM reviews GROUP BY rating ORDER BY rating;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              1324.787,
+              905.54
+            ],
+            "run_sql": [
+              2.034
+            ],
+            "total": [
+              2239.776806000009
+            ]
+          },
+          "tokens": {
+            "input": 3232,
+            "output": 160
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT rating, COUNT(*) AS review_count\nFROM reviews\nGROUP BY rating\nORDER BY rating;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              725.117,
+              857.702
+            ],
+            "run_sql": [
+              2.0349999999999997
+            ],
+            "total": [
+              1592.5695719997748
+            ]
+          },
+          "tokens": {
+            "input": 3235,
+            "output": 134
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT rating, COUNT(*) AS cnt\nFROM reviews\nGROUP BY rating\nORDER BY rating;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              644.3919999999999,
+              1009.3430000000001
+            ],
+            "run_sql": [
+              2.297
+            ],
+            "total": [
+              1662.9794700020284
+            ]
+          },
+          "tokens": {
+            "input": 3233,
+            "output": 176
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "topic-stickiness",
+      "type": "주제",
+      "turns": [
+        "사람들이 끈적임에 대해 뭐라고 해?"
+      ],
+      "passed": 2,
+      "total": 3,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 809,
+            "output": 63
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products LIMIT 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "tacky",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "greasy",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "residue",
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              756.5809999999999,
+              879.9559999999999,
+              1869.712
+            ],
+            "run_sql": [
+              0.759
+            ],
+            "search_reviews": [
+              487.183,
+              482.473,
+              485.733,
+              503.784
+            ],
+            "total": [
+              4028.716812001221
+            ],
+            "embed_query": [
+              479.62724000171875,
+              484.5784389981418,
+              484.1019919986138,
+              502.14800300091156
+            ]
+          },
+          "tokens": {
+            "input": 7693,
+            "output": 449
+          },
+          "embedding_calls": 4
+        },
+        {
+          "answer_ok": false,
+          "trajectory_ok": false,
+          "evidence_ok": true,
+          "fail_reason": "review_id와 짧은 영어 원문 인용이 있는 끈적임 언급 리뷰 3건 이상이 없고, 반복 표현 요약도 2가지 이상으로 구체적으로 제시되지 않았다.",
+          "judge_tokens": {
+            "input": 702,
+            "output": 61
+          },
+          "judge_passed": false,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products LIMIT 5;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              689.6099999999999,
+              1544.703
+            ],
+            "run_sql": [
+              0.728
+            ],
+            "total": [
+              2242.751888999919
+            ]
+          },
+          "tokens": {
+            "input": 3419,
+            "output": 244
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 714,
+            "output": 65
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%moisturizer%' OR title LIKE '%cream%' OR title LIKE '%face%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky greasy residue film heavy absorbs quickly light",
+                "parent_asin": "B0BLS6BXQJ",
+                "k": 5
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              737.0759999999999,
+              1038.638,
+              1721.501
+            ],
+            "run_sql": [
+              0.888
+            ],
+            "search_reviews": [
+              168.534
+            ],
+            "total": [
+              3679.1209270013496
+            ],
+            "embed_query": [
+              165.99600100016687
+            ]
+          },
+          "tokens": {
+            "input": 6204,
+            "output": 320
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "topic-irritation",
+      "type": "주제",
+      "turns": [
+        "피부 트러블이나 자극이 생겼다는 리뷰가 있어? 어떤 내용이야?"
+      ],
+      "passed": 2,
+      "total": 3,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 972,
+            "output": 69
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products ORDER BY parent_asin LIMIT 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation, breakout, rash, redness, burning, itching, stinging, acne, pimples, break out",
+                "k": "10"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "made my skin worse, caused irritation, caused breakout, caused rash, caused redness, caused burning, caused itching",
+                "k": "10"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS n_reviews,\n       SUM(CASE WHEN rating<=2 THEN 1 ELSE 0 END) AS n_low_rating\nFROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              923.999,
+              954.821,
+              682.133,
+              2308.601
+            ],
+            "run_sql": [
+              0.971,
+              1.474
+            ],
+            "search_reviews": [
+              152.751,
+              192.552
+            ],
+            "total": [
+              5081.649753999955
+            ],
+            "embed_query": [
+              150.228047001292,
+              188.98651500057895
+            ]
+          },
+          "tokens": {
+            "input": 11621,
+            "output": 650
+          },
+          "embedding_calls": 2
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": false,
+          "evidence_ok": true,
+          "fail_reason": "기대한 호출이 없거나 순서가 어긋났다: {'tool': 'search_reviews'}",
+          "judge_tokens": {
+            "input": 920,
+            "output": 83
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Cream%' OR title LIKE '%Moistur%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT r.review_id, r.parent_asin, p.title, r.rating, r.title AS review_title, r.text FROM reviews r JOIN products p ON p.parent_asin = r.parent_asin WHERE r.parent_asin IN ('B0C46SPKJ9','B0C5K3SWQR','B0BLS6BXQJ','B08KVK68F7','B0BW4SCRDG','B0973SMMD7','B0C8N91FV3','B091PXCPYD','B0BW3K3ZB1','B01NCWV3KM','B0C32WW8KK','B09Z73XHMB','B000UVZU1S','B07BB3FK19','B08MVQ1X2P','B0B6D75N76','B00NR1YQHM','B08YZ8219S') AND (LOWER(r.text) LIKE '%break out%' OR LOWER(r.text) LIKE '%irritat%' OR LOWER(r.text) LIKE '%rash%' OR LOWER(r.text) LIKE '%burn%' OR LOWER(r.text) LIKE '%sting%' OR LOWER(r.text) LIKE '%allerg%' OR LOWER(r.text) LIKE '%acne%' OR LOWER(r.text) LIKE '%pimple%') LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              1001.8860000000001,
+              1416.4479999999999,
+              2222.116
+            ],
+            "run_sql": [
+              0.769,
+              1.16
+            ],
+            "total": [
+              4654.452489998221
+            ]
+          },
+          "tokens": {
+            "input": 11554,
+            "output": 751
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 1002,
+            "output": 66
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Skin%' OR title LIKE '%Moisturizer%' OR title LIKE '%Cream%' LIMIT 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation, breakout, rash, burning, stinging, acne, redness, reaction, allergic reaction",
+                "parent_asin": "B08KVK68F7",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation, breakout, rash, burning, stinging, acne, redness, reaction, allergic reaction",
+                "parent_asin": "B0BLS6BXQJ",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation, breakout, rash, burning, stinging, acne, redness, reaction, allergic reaction",
+                "parent_asin": "B0C5K3SWQR",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation, breakout, rash, burning, stinging, acne, redness, reaction, allergic reaction",
+                "parent_asin": "B0C46SPKJ9",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation, breakout, rash, burning, stinging, acne, redness, reaction, allergic reaction",
+                "parent_asin": "B0C5WPD2RN",
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              687.28,
+              1496.173,
+              2325.141
+            ],
+            "run_sql": [
+              0.737
+            ],
+            "search_reviews": [
+              164.712,
+              161.265,
+              184.484,
+              190.055,
+              151.204
+            ],
+            "total": [
+              4719.084484000632
+            ],
+            "embed_query": [
+              148.553938997793,
+              162.41901899775257,
+              159.16771900083404,
+              182.26379999759956,
+              187.39315800121403
+            ]
+          },
+          "tokens": {
+            "input": 10708,
+            "output": 816
+          },
+          "embedding_calls": 5
+        }
+      ]
+    },
+    {
+      "id": "topic-scent",
+      "type": "주제",
+      "turns": [
+        "향에 대해서는 어떤 말이 나와?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 806,
+            "output": 76
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products ORDER BY rating_number DESC LIMIT 20;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "fragrance scent smell scented odor unscented perfume",
+                "parent_asin": "B08KVK68F7",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "fragrance scent smell scented odor unscented perfume",
+                "parent_asin": "B0B6D75N76",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "fragrance scent smell scented odor unscented perfume",
+                "parent_asin": "B09Z73XHMB",
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              612.897,
+              1056.309,
+              3157.8759999999997
+            ],
+            "run_sql": [
+              0.883
+            ],
+            "search_reviews": [
+              179.279,
+              161.471,
+              136.893
+            ],
+            "total": [
+              5019.327312998939
+            ],
+            "embed_query": [
+              134.2872549976164,
+              158.1250400013232,
+              175.28477700034273
+            ]
+          },
+          "tokens": {
+            "input": 9530,
+            "output": 519
+          },
+          "embedding_calls": 3
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 715,
+            "output": 60
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products ORDER BY title LIMIT 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "fragrance scent smell odor perfumed unscented fragrance-free",
+                "k": "10"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              621.2330000000001,
+              751.62,
+              1453.404
+            ],
+            "run_sql": [
+              0.8109999999999999
+            ],
+            "search_reviews": [
+              205.04
+            ],
+            "total": [
+              3046.0695260007924
+            ],
+            "embed_query": [
+              202.5631379983679
+            ]
+          },
+          "tokens": {
+            "input": 6145,
+            "output": 319
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 732,
+            "output": 75
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products ORDER BY parent_asin LIMIT 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "fragrance scent smell perfume odor scented unscented",
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              655.449,
+              667.157,
+              1390.5559999999998
+            ],
+            "run_sql": [
+              0.717
+            ],
+            "search_reviews": [
+              128.14000000000001
+            ],
+            "total": [
+              2852.9457219992764
+            ],
+            "embed_query": [
+              125.56293300076504
+            ]
+          },
+          "tokens": {
+            "input": 6011,
+            "output": 337
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "mix-low-rating-complaints",
+      "type": "혼합",
+      "turns": [
+        "Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces의 1~2점 리뷰에서 가장 많이 나오는 불만은?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 1위 상품": "Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 851,
+            "output": 65
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream%' OR title LIKE '%Eight Saints Cloud Whip%' OR title LIKE '%Cloud Whip%' ;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews WHERE parent_asin = 'B08YZ8219S' AND rating BETWEEN 1 AND 2;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "dryness irritation greasy sticky residue smell scent break out burn peel rash",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "too thick too heavy oily white cast absorb absorption pilling film",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "allergic acne breakout burning stinging itching redness",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              756.6659999999999,
+              806.129,
+              1289.0140000000001,
+              1710.008
+            ],
+            "run_sql": [
+              0.716,
+              2.113
+            ],
+            "search_reviews": [
+              160.682,
+              190.73499999999999,
+              158.28300000000002
+            ],
+            "total": [
+              4773.726989998977
+            ],
+            "embed_query": [
+              156.43430699856253,
+              154.04779899836285,
+              188.53912499980652
+            ]
+          },
+          "tokens": {
+            "input": 9122,
+            "output": 587
+          },
+          "embedding_calls": 3
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 767,
+            "output": 64
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream%' OR title LIKE '%Eight Saints Cloud Whip%' OR title LIKE '%Cloud Whip Vitamin C Face Moisturizer%';"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews WHERE parent_asin = 'B08YZ8219S' AND rating IN (1,2);"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "dry",
+                "parent_asin": "B08YZ8219S",
+                "max_rating": 2,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "greasy",
+                "parent_asin": "B08YZ8219S",
+                "max_rating": 2,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "scent",
+                "parent_asin": "B08YZ8219S",
+                "max_rating": 2,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "itch",
+                "parent_asin": "B08YZ8219S",
+                "max_rating": 2,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "break out",
+                "parent_asin": "B08YZ8219S",
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              700.913,
+              693.8539999999999,
+              1073.942,
+              1441.43
+            ],
+            "run_sql": [
+              0.732,
+              2.0300000000000002
+            ],
+            "search_reviews": [
+              235.917,
+              229.137,
+              138.064,
+              224.836,
+              160.636
+            ],
+            "total": [
+              4165.252885002701
+            ],
+            "embed_query": [
+              135.66821600034018,
+              158.37934799856157,
+              220.50657699946896,
+              226.40360700097517,
+              234.25696899721515
+            ]
+          },
+          "tokens": {
+            "input": 10445,
+            "output": 549
+          },
+          "embedding_calls": 5
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 806,
+            "output": 67
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream%'"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS n FROM reviews WHERE parent_asin='B08YZ8219S' AND rating BETWEEN 1 AND 2"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "complaint problem dislike issue 1 star 2 stars cream sticky greasy heavy pilling broke out irritation smell texture price",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              700.298,
+              971.7320000000001,
+              1506.078
+            ],
+            "run_sql": [
+              0.743,
+              2.876
+            ],
+            "search_reviews": [
+              138.813
+            ],
+            "total": [
+              3331.735962001403
+            ],
+            "embed_query": [
+              136.28953799707233
+            ]
+          },
+          "tokens": {
+            "input": 5869,
+            "output": 430
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "mix-verified-praise",
+      "type": "혼합",
+      "turns": [
+        "L'Oreal Paris Collagen Face Moisturizer, Day and Night Cream, Neck and Chest Cream to smooth skin and reduce wrinkles, 1.7 oz의 구매 인증된 5점 리뷰에서는 뭘 칭찬해?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 2위 상품": "L'Oreal Paris Collagen Face Moisturizer, Day and Night Cream, Neck and Chest Cream to smooth skin and reduce wrinkles, 1.7 oz"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 750,
+            "output": 67
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%L''Oreal Paris Collagen Face Moisturizer%'"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise, love, works well, moisturizing, absorbs, smooth skin, wrinkles, smell, texture, fast shipping",
+                "parent_asin": "B0C46SPKJ9",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              669.159,
+              885.444,
+              1414.634
+            ],
+            "run_sql": [
+              0.798
+            ],
+            "search_reviews": [
+              165.829
+            ],
+            "total": [
+              3147.960882000916
+            ],
+            "embed_query": [
+              163.2500710002205
+            ]
+          },
+          "tokens": {
+            "input": 5859,
+            "output": 369
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 703,
+            "output": 73
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%L''Oreal Paris Collagen Face Moisturizer%' OR title LIKE '%Collagen Face Moisturizer%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise, compliment, love, great, works well, moisturizing, smooth, absorbs, soft skin, wrinkle reduction",
+                "parent_asin": "B0C46SPKJ9",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              690.699,
+              870.188,
+              1531.144
+            ],
+            "run_sql": [
+              0.834
+            ],
+            "search_reviews": [
+              132.017
+            ],
+            "total": [
+              3237.447618997976
+            ],
+            "embed_query": [
+              129.45376299830968
+            ]
+          },
+          "tokens": {
+            "input": 5883,
+            "output": 337
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 795,
+            "output": 50
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%L''Oreal Paris Collagen Face Moisturizer%' OR title LIKE '%L''Oreal Paris Collagen%' OR title LIKE '%Collagen Face Moisturizer%'"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise benefits smooth skin reduce wrinkles moisturizer absorbs well non greasy hydrating good scent",
+                "parent_asin": "B0C46SPKJ9",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              743.309,
+              721.577,
+              1869.048
+            ],
+            "run_sql": [
+              0.83
+            ],
+            "search_reviews": [
+              157.508
+            ],
+            "total": [
+              3504.31459599713
+            ],
+            "embed_query": [
+              154.88187000300968
+            ]
+          },
+          "tokens": {
+            "input": 6030,
+            "output": 430
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "mix-low-rating-count",
+      "type": "혼합",
+      "turns": [
+        "Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces의 1~2점 리뷰는 몇 건이고, 그 리뷰들은 주로 뭘 문제 삼아?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 1위 상품": "Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces"
+      },
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream%';"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE parent_asin = 'B08YZ8219S' AND rating BETWEEN 1 AND 2;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "dryness, irritation, greasy, pilling, smell, texture, absorption, breakouts",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "burning, rash, stinging, itchy, allergic reaction, redness",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "odor, scent, smell, fragrance, sunscreen, heavy",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              712.638,
+              646.6039999999999,
+              1128.9119999999998,
+              1823.843
+            ],
+            "run_sql": [
+              0.768,
+              2.0709999999999997
+            ],
+            "search_reviews": [
+              160.269,
+              165.76,
+              169.507
+            ],
+            "total": [
+              4506.0718360000465
+            ],
+            "embed_query": [
+              157.83822799858171,
+              163.6545590008609,
+              167.9867179991561
+            ]
+          },
+          "tokens": {
+            "input": 9105,
+            "output": 599
+          },
+          "embedding_calls": 3
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces%' OR title LIKE '%Eight Saints Cloud Whip%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS n_1_2 FROM reviews WHERE parent_asin = 'B08YZ8219S' AND rating BETWEEN 1 AND 2;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "problem issue complaint negative dries greasy itchy burning break out residue smell texture",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              849.4119999999999,
+              934.539,
+              1578.5020000000002
+            ],
+            "run_sql": [
+              0.714,
+              2.9229999999999996
+            ],
+            "search_reviews": [
+              144.769
+            ],
+            "total": [
+              3521.2707790014974
+            ],
+            "embed_query": [
+              142.38453700090759
+            ]
+          },
+          "tokens": {
+            "input": 5975,
+            "output": 488
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream%'"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count, AVG(rating) AS avg_rating FROM reviews WHERE parent_asin = 'B08YZ8219S' AND rating BETWEEN 1 AND 2"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "problem issue complaint sticky greasy heavy oily residue break out irritation smell absorb not moisturizing",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              679.836,
+              1155.956,
+              1822.3400000000001
+            ],
+            "run_sql": [
+              0.8099999999999999,
+              2.944
+            ],
+            "search_reviews": [
+              153.68200000000002
+            ],
+            "total": [
+              3826.6554480032937
+            ],
+            "embed_query": [
+              151.131823000469
+            ]
+          },
+          "tokens": {
+            "input": 5905,
+            "output": 508
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "followup-five-star-praise",
+      "type": "후속",
+      "turns": [
+        "Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces의 1~2점 리뷰에서 가장 많이 나오는 불만은?",
+        "그럼 5점 리뷰에서는 뭘 칭찬해?"
+      ],
+      "passed": 2,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 1위 상품": "Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": false,
+          "evidence_ok": true,
+          "fail_reason": "기대한 호출이 없거나 순서가 어긋났다: {'tool': 'search_reviews', 'args_match': {'min_rating': '>=5'}}",
+          "judge_tokens": {
+            "input": 827,
+            "output": 63
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT review_id, title, text FROM reviews WHERE parent_asin = 'B08YZ8219S' AND rating = 5 ORDER BY review_id;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              725.024,
+              910.215,
+              1676.0459999999998,
+              976.688,
+              1788.931
+            ],
+            "run_sql": [
+              0.696,
+              3.192,
+              1.374
+            ],
+            "search_reviews": [
+              302.60900000000004
+            ],
+            "total": [
+              3628.5192369978176,
+              2774.67403600167
+            ],
+            "embed_query": [
+              300.1186669971503
+            ]
+          },
+          "tokens": {
+            "input": 17560,
+            "output": 854
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 858,
+            "output": 52
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE parent_asin = 'B08YZ8219S' AND rating = 5"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "excellent love amazing works great moisturizing hydrating soft smooth texture scent absorb",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "non greasy not sticky lightweight absorbs quickly silky velvety gentle skin sensitive",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "improved skin wrinkles fine lines glow radiant plump firm brightened",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              630.848,
+              1023.3129999999999,
+              1368.878,
+              994.321,
+              1197.672,
+              1938.304
+            ],
+            "run_sql": [
+              0.808,
+              1.701,
+              1.41
+            ],
+            "search_reviews": [
+              163.404,
+              292.695,
+              165.493,
+              135.34099999999998,
+              204.307
+            ],
+            "total": [
+              3331.6028180015564,
+              4353.2700250034395
+            ],
+            "embed_query": [
+              160.88016799767502,
+              288.90192799735814,
+              132.89410199649865,
+              163.21159300059662,
+              202.0505629989202
+            ]
+          },
+          "tokens": {
+            "input": 20510,
+            "output": 1034
+          },
+          "embedding_calls": 5
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 913,
+            "output": 65
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE parent_asin='B08YZ8219S' AND rating = 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise love great excellent works moisturizing hydrating smell texture absorb soft smooth glow lightweight non greasy",
+                "parent_asin": "B08YZ8219S",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              801.601,
+              966.475,
+              1314.472,
+              979.7719999999999,
+              2165.4170000000004
+            ],
+            "run_sql": [
+              0.754,
+              2.46,
+              2.938
+            ],
+            "search_reviews": [
+              138.93,
+              145.47199999999998
+            ],
+            "total": [
+              3234.875137997733,
+              3301.358660002734
+            ],
+            "embed_query": [
+              136.5600409990293,
+              142.95836399833206
+            ]
+          },
+          "tokens": {
+            "input": 12621,
+            "output": 963
+          },
+          "embedding_calls": 2
+        }
+      ]
+    },
+    {
+      "id": "followup-second-product-rating",
+      "type": "후속",
+      "turns": [
+        "리뷰가 가장 많은 상품 3개를 알려 줘.",
+        "그 중 두 번째 상품의 평균 별점은?"
+      ],
+      "passed": 2,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": false,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "답변에 없는 기대값: [4.33]",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT average_rating FROM products WHERE parent_asin = 'B0C46SPKJ9';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              718.723,
+              940.339,
+              738.833,
+              1134.974
+            ],
+            "run_sql": [
+              2.376,
+              0.6930000000000001
+            ],
+            "total": [
+              1669.3785269999353,
+              1882.2219009998662
+            ]
+          },
+          "tokens": {
+            "input": 7060,
+            "output": 340
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title, AVG(rating) AS avg_rating, COUNT(*) AS review_count\nFROM reviews\nWHERE parent_asin = 'B0C46SPKJ9'\nGROUP BY parent_asin, title;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count\nFROM reviews\nWHERE parent_asin = 'B0C46SPKJ9';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              721.402,
+              1015.5659999999999,
+              794.961,
+              724.9799999999999,
+              937.2819999999999
+            ],
+            "run_sql": [
+              2.2659999999999996,
+              1.8159999999999998,
+              1.443
+            ],
+            "total": [
+              1746.9175509977504,
+              2472.146490999876
+            ]
+          },
+          "tokens": {
+            "input": 11680,
+            "output": 442
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT p.title, AVG(r.rating) AS avg_rating, COUNT(*) AS review_count\nFROM reviews r\nJOIN products p ON p.parent_asin = r.parent_asin\nWHERE p.parent_asin = 'B0C46SPKJ9'\nGROUP BY p.title;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              745.965,
+              1170.7669999999998,
+              825.67,
+              933.797
+            ],
+            "run_sql": [
+              3.49,
+              1.514
+            ],
+            "total": [
+              1928.1909559977066,
+              1768.6482169992814
+            ]
+          },
+          "tokens": {
+            "input": 7658,
+            "output": 456
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "followup-narrow-to-low-ratings",
+      "type": "후속",
+      "turns": [
+        "사람들이 흡수력에 대해 뭐라고 해?",
+        "그럼 3점 이하 리뷰에서만 보면 어때?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 785,
+            "output": 56
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorb absorption quickly seeps right into the skin greasy oily heavy",
+                "parent_asin": "B0BW4SCRDG",
+                "max_rating": 3,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              712.311,
+              766.269,
+              1251.85,
+              712.974,
+              1717.347
+            ],
+            "run_sql": [
+              0.754
+            ],
+            "search_reviews": [
+              438.448,
+              128.635
+            ],
+            "total": [
+              3182.0754100008344,
+              2567.1328759999597
+            ],
+            "embed_query": [
+              435.8620940001856,
+              126.06077999953413
+            ]
+          },
+          "tokens": {
+            "input": 11717,
+            "output": 637
+          },
+          "embedding_calls": 2
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 729,
+            "output": 65
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorb sticky residue sink into skin greasy",
+                "min_rating": 1,
+                "max_rating": 3,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorbs quickly soaks in lightweight not greasy",
+                "min_rating": 1,
+                "max_rating": 3,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              733.938,
+              1029.962,
+              1452.8300000000002,
+              849.4979999999999,
+              1528.097
+            ],
+            "run_sql": [
+              0.816
+            ],
+            "search_reviews": [
+              158.916,
+              165.069,
+              148.293,
+              150.673,
+              159.22400000000002
+            ],
+            "total": [
+              3396.3360720008495,
+              2547.2811440013174
+            ],
+            "embed_query": [
+              145.90690999830258,
+              156.7801290002535,
+              163.41960800127708,
+              148.1462570009171,
+              157.03695899719605
+            ]
+          },
+          "tokens": {
+            "input": 17098,
+            "output": 752
+          },
+          "embedding_calls": 5
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 696,
+            "output": 61
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorption absorbent absorbing absorbs soak in sink in residue greasy sticky heavy lightweight fast absorbing",
+                "max_rating": 3,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              638.011,
+              702.9649999999999,
+              1513.82,
+              678.8570000000001,
+              1482.097
+            ],
+            "run_sql": [
+              0.734
+            ],
+            "search_reviews": [
+              142.108,
+              141.9
+            ],
+            "total": [
+              3009.7122710030817,
+              2313.3648590010125
+            ],
+            "embed_query": [
+              139.4337199999427,
+              139.33684600124252
+            ]
+          },
+          "tokens": {
+            "input": 13582,
+            "output": 604
+          },
+          "embedding_calls": 2
+        }
+      ]
+    },
+    {
+      "id": "refuse-korea-sales",
+      "type": "거절",
+      "turns": [
+        "Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces의 한국 매출은 얼마야?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 1위 상품": "Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream, Natural and Organic Face Cream For Women, Anti Aging Cream For Face To Reduce Fine Lines and Wrinkles, 2 Ounces"
+      },
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream%' OR title LIKE '%Eight Saints Cloud Whip%' OR title LIKE '%Eight Saints%' LIMIT 10;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              724.628,
+              1167.4679999999998
+            ],
+            "run_sql": [
+              0.781
+            ],
+            "total": [
+              1900.8016490006412
+            ]
+          },
+          "tokens": {
+            "input": 3347,
+            "output": 237
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream%';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              944.055,
+              1156.7
+            ],
+            "run_sql": [
+              0.7150000000000001
+            ],
+            "total": [
+              2108.4650920020067
+            ]
+          },
+          "tokens": {
+            "input": 3327,
+            "output": 210
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Eight Saints Cloud Whip Vitamin C Face Moisturizer Day Cream%';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              730.707,
+              1480.809
+            ],
+            "run_sql": [
+              0.6920000000000001
+            ],
+            "total": [
+              2219.0814210007375
+            ]
+          },
+          "tokens": {
+            "input": 3327,
+            "output": 225
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "refuse-reviewer-age",
+      "type": "거절",
+      "turns": [
+        "리뷰를 쓴 사람들의 나이대 분포가 어떻게 돼?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS total_reviews FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              621.203,
+              972.7059999999999
+            ],
+            "run_sql": [
+              1.198
+            ],
+            "total": [
+              1603.2273080018058
+            ]
+          },
+          "tokens": {
+            "input": 3196,
+            "output": 139
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS total_reviews FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              790.2900000000001,
+              1019.053
+            ],
+            "run_sql": [
+              1.371
+            ],
+            "total": [
+              1818.206702999305
+            ]
+          },
+          "tokens": {
+            "input": 3196,
+            "output": 165
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT '적재 데이터에는 리뷰어의 나이 정보가 없습니다' AS note LIMIT 1;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              694.841,
+              1062.7150000000001
+            ],
+            "run_sql": [
+              0.71
+            ],
+            "total": [
+              1765.315799999371
+            ]
+          },
+          "tokens": {
+            "input": 3218,
+            "output": 182
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "refuse-offline-sales",
+      "type": "거절",
+      "turns": [
+        "이 상품들이 오프라인 매장에서 몇 개나 팔렸어?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [],
+          "timings_ms": {
+            "llm": [
+              907.474
+            ],
+            "total": [
+              911.5283149985771
+            ]
+          },
+          "tokens": {
+            "input": 1568,
+            "output": 93
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [],
+          "timings_ms": {
+            "llm": [
+              968.7139999999999
+            ],
+            "total": [
+              973.3498700006749
+            ]
+          },
+          "tokens": {
+            "input": 1568,
+            "output": 103
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [],
+          "timings_ms": {
+            "llm": [
+              1128.695
+            ],
+            "total": [
+              1131.990339999902
+            ]
+          },
+          "tokens": {
+            "input": 1568,
+            "output": 112
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "scope-hair-shampoo",
+      "type": "범위 밖",
+      "turns": [
+        "니옥신 탈모 샴푸 리뷰에서는 두피 개선 평가가 어때?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' OR title LIKE '%nioxin%' OR title LIKE '%hair%' OR title LIKE '%shampoo%' ORDER BY title LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' OR title LIKE '%nioxin%' ORDER BY title LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              905.153,
+              644.3290000000001,
+              1377.268
+            ],
+            "run_sql": [
+              1.0,
+              0.86
+            ],
+            "total": [
+              2940.357805000531
+            ]
+          },
+          "tokens": {
+            "input": 5072,
+            "output": 217
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' OR title LIKE '%nioxin%' OR title LIKE '%hair shampoo%' OR title LIKE '%scalp%' ORDER BY title LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' OR title LIKE '%nioxin%' ORDER BY title LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              862.476,
+              653.304,
+              1163.016
+            ],
+            "run_sql": [
+              0.7789999999999999,
+              0.784
+            ],
+            "total": [
+              2691.322910999588
+            ]
+          },
+          "tokens": {
+            "input": 4978,
+            "output": 263
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' OR title LIKE '%Hair Care%' OR title LIKE '%Shampoo%' ORDER BY title LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' OR title LIKE '%탈모%' OR title LIKE '%shampoo%' OR title LIKE '%Scalp%' ORDER BY title LIMIT 50;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              678.986,
+              705.702,
+              1060.262
+            ],
+            "run_sql": [
+              0.7739999999999999,
+              0.846
+            ],
+            "total": [
+              2457.656616999884
+            ]
+          },
+          "tokens": {
+            "input": 4975,
+            "output": 234
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "scope-2022-reviews",
+      "type": "범위 밖",
+      "turns": [
+        "2022년 리뷰에서는 어떤 불만이 많았어?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE reviewed_at >= '2022-01-01' AND reviewed_at < '2023-01-01';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              846.707,
+              899.573
+            ],
+            "run_sql": [
+              1.519
+            ],
+            "total": [
+              1755.2862279990222
+            ]
+          },
+          "tokens": {
+            "input": 3208,
+            "output": 161
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS n FROM reviews WHERE reviewed_at LIKE '2022-%';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              598.761,
+              902.5
+            ],
+            "run_sql": [
+              2.006
+            ],
+            "total": [
+              1510.6341030004842
+            ]
+          },
+          "tokens": {
+            "input": 3193,
+            "output": 115
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE reviewed_at >= '2022-01-01' AND reviewed_at < '2023-01-01';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              760.971,
+              952.1840000000001
+            ],
+            "run_sql": [
+              1.4829999999999999
+            ],
+            "total": [
+              1722.3433990002377
+            ]
+          },
+          "tokens": {
+            "input": 3208,
+            "output": 155
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "scope-non-beauty-product",
+      "type": "범위 밖",
+      "turns": [
+        "로지텍 MX Master 3S 마우스 리뷰는 어때?"
+      ],
+      "passed": 2,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master 3S%' OR title LIKE '%Logitech MX Master 3S%' OR title LIKE '%로지텍 MX Master 3S%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master%' OR title LIKE '%Logitech MX%' OR title LIKE '%MX%' LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              895.8779999999999,
+              782.4590000000001,
+              1060.6660000000002
+            ],
+            "run_sql": [
+              0.775,
+              0.7699999999999999
+            ],
+            "total": [
+              2751.137846000347
+            ]
+          },
+          "tokens": {
+            "input": 4978,
+            "output": 215
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master 3S%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Logitech%' AND title LIKE '%Master 3S%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master%' LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              727.716,
+              737.523,
+              630.759,
+              867.951
+            ],
+            "run_sql": [
+              0.782,
+              0.781,
+              0.719
+            ],
+            "total": [
+              2980.600699000206
+            ]
+          },
+          "tokens": {
+            "input": 6705,
+            "output": 220
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": false,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "거절해야 할 질문에 거절하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master 3S%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Logitech%' AND title LIKE '%Master 3S%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Logitech%' AND title LIKE '%MX%' LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              793.107,
+              927.115,
+              797.7239999999999,
+              926.0699999999999
+            ],
+            "run_sql": [
+              0.74,
+              0.7739999999999999,
+              0.762
+            ],
+            "total": [
+              3460.537590999593
+            ]
+          },
+          "tokens": {
+            "input": 6711,
+            "output": 229
+          },
+          "embedding_calls": 0
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 49,
+    "total": 54,
+    "by_type": {
+      "집계": {
+        "passed": 9,
+        "total": 9
+      },
+      "주제": {
+        "passed": 7,
+        "total": 9
+      },
+      "혼합": {
+        "passed": 9,
+        "total": 9
+      },
+      "후속": {
+        "passed": 7,
+        "total": 9
+      },
+      "거절": {
+        "passed": 9,
+        "total": 9
+      },
+      "범위 밖": {
+        "passed": 8,
+        "total": 9
+      }
+    },
+    "question_seconds": {
+      "median": 3.0355932919992483,
+      "max": 7.684872843004996
+    },
+    "question_tokens": {
+      "median": 6224.0,
+      "total": 373126
+    },
+    "module_ms": {
+      "llm": 169261.844,
+      "run_sql": 108.63500000000002,
+      "search_reviews": 10203.514,
+      "embed_query": 10071.952798971324
+    },
+    "tokens": {
+      "input": 353461,
+      "output": 19665
+    },
+    "judge_tokens": {
+      "input": 16852,
+      "output": 1366
+    },
+    "judge_agreement": {
+      "matched": 20,
+      "of": 21
+    },
+    "embedding_calls": 51
+  }
+}
