@@ -82,7 +82,7 @@ def _evaluate_case(case: Case, db_path: Path, execute: Execute, judge: Judge | N
         "id": case.id,
         "type": case.type,
         "turns": case.turns,
-        "passed": sum(a["answer_ok"] and a["trajectory_ok"] and a["evidence_ok"] for a in attempts),
+        "passed": sum(bool(a["answer_ok"]) and a["trajectory_ok"] and a["evidence_ok"] for a in attempts),
         "total": runs,
         "resolved": case.resolved,
         "human_label": case.human_label,
@@ -93,7 +93,13 @@ def _evaluate_case(case: Case, db_path: Path, execute: Execute, judge: Judge | N
 def _score(case: Case, turns: list[TurnResult], db_path: Path, judge: Judge | None) -> dict:
     last = turns[-1]
     verdict = _judged(case, last.answer, judge)
-    answer_ok, answer_reason = (verdict.passed, verdict.reason) if verdict else score_answer(case, last.answer, db_path)
+    if verdict is not None:
+        answer_ok, answer_reason = verdict.passed, verdict.reason
+    elif case.rubric is not None:
+        # 심판 없이 돈 축약 측정. 답변은 채점하지 않았다는 뜻으로 남긴다(실패와 구별한다).
+        answer_ok, answer_reason = None, "심판을 부르지 않아 답변을 채점하지 않았다"
+    else:
+        answer_ok, answer_reason = score_answer(case, last.answer, db_path)
     trajectory_ok, trajectory_reason = score_trajectory(case, last.trajectory)
     evidence_ok, evidence_reason = verify_evidence(last.answer, db_path)
     return {
@@ -126,11 +132,12 @@ def _judge_agreement(results: list[dict]) -> dict:
 
 
 def _judged(case: Case, answer: str, judge: Judge | None) -> JudgeVerdict | None:
-    """루브릭이 있는 케이스는 심판이 채점한다. 정답이 하나로 정해지지 않기 때문이다."""
-    if case.rubric is None:
+    """루브릭이 있는 케이스는 심판이 채점한다. 정답이 하나로 정해지지 않기 때문이다.
+
+    심판이 없으면 부르지 않는다. 규모가 다른 점끼리는 품질을 비교하지 않으므로, 축약 측정은 심판을 두지 않는다.
+    """
+    if case.rubric is None or judge is None:
         return None
-    if judge is None:
-        raise ValueError(f"케이스 '{case.id}'에는 루브릭이 있는데 심판이 주어지지 않았습니다.")
     return judge(case.rubric, case.turns[-1], answer)
 
 
