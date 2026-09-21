@@ -60,6 +60,8 @@ def _comparison_report(current: dict, baseline: dict, verdict: str, regressed: l
     lines += [_change_line(before[case_id], _case(current, case_id)) for case_id in regressed] or ["없음"]
     lines += ["", "## 새로 통과하게 된 케이스", ""]
     lines += [_change_line(before[case_id], _case(current, case_id)) for case_id in newly] or ["없음"]
+    lines += ["", "## 한쪽에만 있는 케이스 (견주지 않았다)", ""]
+    lines += _case_set_diff(current, baseline) or ["없음"]
     lines += [
         "",
         "## 통과율 (판정에는 쓰지 않는다)",
@@ -74,6 +76,16 @@ def _comparison_report(current: dict, baseline: dict, verdict: str, regressed: l
         f"실패한 회차의 답변 전문은 `evals/details/{current['run_id']}.json`에 있다.",
     ]
     return "\n".join(lines) + "\n"
+
+
+def _case_set_diff(current: dict, baseline: dict) -> list[str]:
+    """한쪽에만 있는 케이스. 케이스를 갈아치운 회차에서 이 줄이 없으면 그 케이스가 조용히 빠진 것이 된다."""
+    now = {case["id"] for case in current["cases"]}
+    was = {case["id"] for case in baseline["cases"]}
+    return (
+        [f"- `{case_id}` 새 케이스라 기준선에 견줄 값이 없다" for case_id in sorted(now - was)]
+        + [f"- `{case_id}` 기준선에만 있고 지금은 없다" for case_id in sorted(was - now)]
+    )
 
 
 def _single_report(current: dict) -> str:
