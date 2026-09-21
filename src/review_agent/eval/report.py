@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import subprocess
 from pathlib import Path
 from uuid import uuid4
@@ -8,7 +10,7 @@ from review_agent.sql_tool import run_sql
 
 
 def run_meta(
-    db_path: Path, model: str, judge_model: str | None, prompt_hash: str, vector_store_open_ms: float
+    db_path: Path, model: str, judge_model: str | None, prompt_hash: str, vector_store_load: dict
 ) -> dict:
     """평가 결과에 함께 남길 실행 조건을 모은다.
 
@@ -16,18 +18,32 @@ def run_meta(
     규모가 다른 결과끼리 품질을 비교하지 않으려면 이 라벨이 결과 안에 있어야 한다.
 
     Returns:
-        규모, 적재 측정값, 모델과 프롬프트·커밋 해시를 담은 dict.
+        규모, 적재 측정값, 환경 지문, 벡터 저장소 콜드 로드 측정값, 모델과 프롬프트·커밋 해시를 담은 dict.
     """
     scale = _scale(db_path)
     return {
         "run_id": f"{scale['label']}-{_commit()}-{uuid4().hex[:6]}",
         "scale": scale,
         "load_metrics": load_metrics(db_path),
+        "environment": _environment(db_path),
         "model": model,
         "judge_model": judge_model,
         "prompt_hash": prompt_hash,
         "commit": _commit(),
-        "vector_store_open_ms": vector_store_open_ms,
+        **vector_store_load,
+    }
+
+
+def _environment(db_path: Path) -> dict:
+    """어느 기계에서 돌았는지를 적는 환경 지문 세 필드.
+
+    기록만 한다. 하네스는 이 값을 다시 읽어 비교하거나 경고하지 않는다. 호스트 라벨이 `.env`에 없으면
+    라벨 없이 적는다 — 라벨 하나 때문에 평가를 세울 이유가 없다.
+    """
+    return {
+        "host_label": os.environ.get("EVAL_HOST_LABEL"),
+        "total_ram_bytes": os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES"),
+        "data_free_bytes": shutil.disk_usage(db_path).free,
     }
 
 

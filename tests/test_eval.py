@@ -357,7 +357,8 @@ expected_sql = "SELECT ROUND(AVG(rating), 2) FROM reviews"
 def test_run_meta_carries_the_scale_label_and_the_load_metrics(tmp_path):
     db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
 
-    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=21300.0)
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123",
+                    vector_store_load={"vector_store_open_ms": 21300.0})
 
     assert info["scale"] == {
         "label": "skin-care-face-creams-moisturizers-n20", "scope": DEFAULT_SCOPE, "top_n": 20,
@@ -373,11 +374,27 @@ def test_run_meta_says_when_the_load_metrics_are_missing(tmp_path):
     db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
     db.with_suffix(".metrics.json").unlink()
 
-    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=0.0)
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123",
+                    vector_store_load={"vector_store_open_ms": 0.0})
 
     assert info["load_metrics"] is None
     # 측정값이 없으면 상위 N을 모른다. 적재된 상품 수를 상위 N으로 읽던 옛 라벨을 따른다.
     assert info["scale"]["label"] == "skin-care-face-creams-moisturizers-n1"
+
+
+def test_run_meta_carries_the_environment_fingerprint(tmp_path, monkeypatch):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    monkeypatch.setenv("EVAL_HOST_LABEL", "ec2-r7i-xlarge")
+
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_load={})
+
+    assert info["environment"]["host_label"] == "ec2-r7i-xlarge"
+    assert info["environment"]["total_ram_bytes"] > 0
+    assert info["environment"]["data_free_bytes"] > 0
+
+    # 호스트 라벨이 없으면 라벨 없이 적는다. 라벨 하나 때문에 평가를 세우지 않는다.
+    monkeypatch.delenv("EVAL_HOST_LABEL")
+    assert run_meta(db, "gpt-5.4-mini", None, "abc123", {})["environment"]["host_label"] is None
 
 
 def verdicts(*passes):
