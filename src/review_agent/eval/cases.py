@@ -18,6 +18,8 @@ class Case:
     turns: list[str]
     expected_sql: str | None = None
     must_refuse: bool = False
+    rubric: str | None = None
+    human_label: str | None = None
     expected_trajectory: list[dict] = field(default_factory=list)
     forbidden: list[dict] = field(default_factory=list)
     resolved: dict[str, str] = field(default_factory=dict)
@@ -36,8 +38,8 @@ def load_cases(path: Path, db_path: Path | None = None) -> list[Case]:
     cases = [
         Case(
             id=c["id"], type=c["type"], turns=list(c["turns"]), expected_sql=c.get("expected_sql"),
-            must_refuse=c.get("must_refuse", False), expected_trajectory=c.get("expected_trajectory", []),
-            forbidden=c.get("forbidden", []),
+            must_refuse=c.get("must_refuse", False), rubric=c.get("rubric"), human_label=c.get("human_label"),
+            expected_trajectory=c.get("expected_trajectory", []), forbidden=c.get("forbidden", []),
         )
         for c in doc["cases"]
     ]

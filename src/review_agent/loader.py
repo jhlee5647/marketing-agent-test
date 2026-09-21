@@ -2,6 +2,7 @@ import argparse
 import gzip
 import json
 import sqlite3
+import time
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -59,11 +60,17 @@ def load(
 ) -> tuple[int, int]:
     """메타·리뷰 줄 스트림에서 2023년 리뷰 수 상위 `top_n`개 얼굴 보습 제품과 그 2023년 리뷰 전부를 SQLite와 리뷰 벡터 저장소 파일에 적재한다.
 
+    적재에 걸린 시간과 만들어진 파일 크기는 적재 데이터 옆 `<db 이름>.metrics.json`에 남긴다. 규모를 키웠을 때
+    무엇이 몇 배로 늘어나는지 평가 결과와 함께 보기 위해서다.
+
     Returns:
         적재된 (상품 수, 리뷰 수).
     """
+    started = time.perf_counter()
+    metrics_path = db_path.with_suffix(".metrics.json")
     db_path.unlink(missing_ok=True)
     vectors_path.unlink(missing_ok=True)
+    metrics_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA)
 
@@ -104,11 +111,15 @@ def load(
     conn.execute("DELETE FROM products WHERE parent_asin NOT IN (SELECT parent_asin FROM top_products)")
 
     conn.commit()
+    # 상위 N개 밖을 지운 자리는 VACUUM 전까지 파일에 그대로 남는다. 적재 데이터 크기가 실제 내용을
+    # 나타내야 규모별 비교가 의미를 갖는다.
+    conn.execute("VACUUM")
 
     reviews = conn.execute(
         "SELECT review_id, parent_asin, rating, title, text, reviewed_at, verified_purchase FROM reviews"
     ).fetchall()
     store = InMemoryVectorStore(embeddings)
+    embedding_started = time.perf_counter()
     store.add_texts(
         [document_prefix(title) + text for _, _, _, title, text, _, _ in reviews],
         metadatas=[
@@ -118,10 +129,22 @@ def load(
         ],
         ids=[str(review_id) for review_id, *_ in reviews],
     )
+    embedding_seconds = time.perf_counter() - embedding_started
     store.dump(str(vectors_path))
 
     counts = conn.execute("SELECT (SELECT COUNT(*) FROM products), (SELECT COUNT(*) FROM reviews)").fetchone()
     conn.close()
+    metrics_path.write_text(
+        json.dumps(
+            {
+                "products": counts[0], "reviews": counts[1], "top_n": top_n,
+                "load_seconds": time.perf_counter() - started, "embedding_seconds": embedding_seconds,
+                "db_bytes": db_path.stat().st_size, "vectors_bytes": vectors_path.stat().st_size,
+            },
+            ensure_ascii=False, indent=2,
+        ),
+        encoding="utf-8",
+    )
     return counts
 
 

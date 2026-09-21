@@ -4,7 +4,9 @@ from langchain_core.embeddings import DeterministicFakeEmbedding
 
 from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import TurnResult, evaluate
-from review_agent.eval.report import save_run
+from review_agent.eval.compare import compare
+from review_agent.eval.judge import JudgeVerdict
+from review_agent.eval.report import run_meta, save_run
 from review_agent.loader import load
 
 FACE = ["Beauty & Personal Care", "Skin Care", "Face", "Creams & Moisturizers"]
@@ -346,3 +348,221 @@ expected_sql = "SELECT ROUND(AVG(rating), 2) FROM reviews"
     assert coarser["cases"][0]["passed"] == 1
     assert finer["cases"][0]["passed"] == 1
     assert wrong["cases"][0]["passed"] == 0
+
+
+def test_run_meta_carries_the_scale_label_and_the_load_metrics(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=21300.0)
+
+    assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
+    assert info["run_id"].startswith("n1-")
+    assert info["model"] == "gpt-5.4-mini"
+    assert info["vector_store_open_ms"] == 21300.0
+    assert info["load_metrics"]["reviews"] == 3
+
+
+def test_run_meta_says_when_the_load_metrics_are_missing(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    db.with_suffix(".metrics.json").unlink()
+
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=0.0)
+
+    assert info["load_metrics"] is None
+    assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
+
+
+def verdicts(*passes):
+    """정해진 판정을 순서대로 내놓는 가짜 심판."""
+    remaining = list(passes)
+
+    def judge(rubric, question, answer):
+        return JudgeVerdict(passed=remaining.pop(0), reason="가짜 판정", tokens={"input": 50, "output": 10})
+
+    return judge
+
+
+RUBRIC_CASE = """
+[[cases]]
+id = "topic-stickiness"
+type = "주제"
+turns = ["사람들이 끈적임에 대해 뭐라고 해?"]
+rubric = "끈적임에 대한 반복되는 반응을 들고 review_id와 원문 인용을 붙인다."
+"""
+
+
+def test_judge_verdict_decides_a_rubric_case(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+
+    failed = evaluate(cases, db, executor([turn("끈적인다는 말이 많습니다.")]), judge=verdicts(False), runs=1)
+    passed = evaluate(cases, db, executor([turn("끈적인다는 말이 많습니다.")]), judge=verdicts(True), runs=1)
+
+    assert failed["cases"][0]["passed"] == 0
+    assert "가짜 판정" in failed["cases"][0]["runs"][0]["fail_reason"]
+    assert passed["cases"][0]["passed"] == 1
+
+
+def test_a_quoted_review_id_that_does_not_exist_fails_the_run(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+    real, fake = '#1 "sticky"', '#9999 "sticky"'
+
+    quoted_real = evaluate(cases, db, executor([turn(f"끈적인다는 말이 많습니다. {real}")]), judge=verdicts(True), runs=1)
+    quoted_fake = evaluate(cases, db, executor([turn(f"끈적인다는 말이 많습니다. {fake}")]), judge=verdicts(True), runs=1)
+
+    assert quoted_real["cases"][0]["passed"] == 1
+    assert quoted_fake["cases"][0]["passed"] == 0
+    assert "9999" in quoted_fake["cases"][0]["runs"][0]["fail_reason"]
+
+
+def test_a_sql_in_the_answer_that_disagrees_with_the_stated_number_fails_the_run(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+    agrees = "리뷰는 3건입니다. 근거: `SELECT COUNT(*) FROM reviews` → 3"
+    disagrees = "리뷰는 7건입니다. 근거: `SELECT COUNT(*) FROM reviews` → 7"
+
+    right = evaluate(cases, db, executor([turn(agrees)]), judge=verdicts(True), runs=1)
+    wrong = evaluate(cases, db, executor([turn(disagrees)]), judge=verdicts(True), runs=1)
+
+    assert right["cases"][0]["passed"] == 1
+    assert wrong["cases"][0]["passed"] == 0
+    assert "SQL" in wrong["cases"][0]["runs"][0]["fail_reason"]
+
+
+def test_summary_reports_judge_agreement_with_the_human_labels(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, """
+[[cases]]
+id = "topic-stickiness"
+type = "주제"
+turns = ["사람들이 끈적임에 대해 뭐라고 해?"]
+rubric = "끈적임에 대한 반복되는 반응을 든다."
+human_label = "pass"
+""")
+
+    summary = evaluate(cases, db, executor([turn("끈적임 이야기가 많습니다.")], [turn("끈적임 이야기가 많습니다.")]),
+                       judge=verdicts(True, False), runs=2)["summary"]
+
+    assert summary["judge_agreement"] == {"matched": 1, "of": 2}
+
+
+def test_judge_tokens_are_counted_apart_from_the_agent_tokens(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+    answered = turn("끈적임 이야기가 많습니다.", tokens={"input": 900, "output": 100})
+
+    summary = evaluate(cases, db, executor([answered]), judge=verdicts(True), runs=1)["summary"]
+
+    assert summary["tokens"] == {"input": 900, "output": 100}
+    assert summary["judge_tokens"] == {"input": 50, "output": 10}
+
+
+def run_document(label="n20", cases=(), seconds=2.0, tokens=1000, commit="aaa1111", prompt_hash="p1"):
+    """비교에 넣을 평가 결과 하나. (케이스 id, 통과 횟수, 실행 횟수, 유형) 목록으로 만든다."""
+    return {
+        "run_id": f"{label}-{commit}-000001",
+        "scale": {"label": label, "products": 20, "reviews": 4744},
+        "load_metrics": {"load_seconds": 60.0, "embedding_seconds": 10.0, "db_bytes": 1, "vectors_bytes": 2},
+        "model": "gpt-5.4-mini", "judge_model": "gpt-5.4", "prompt_hash": prompt_hash, "commit": commit,
+        "vector_store_open_ms": 13000.0,
+        "cases": [
+            {"id": i, "type": t, "passed": p, "total": n, "turns": ["질문"], "resolved": {}, "human_label": None,
+             "runs": [{"fail_reason": None if p else "실패"}]}
+            for i, p, n, t in cases
+        ],
+        "summary": {
+            "passed": sum(p for _, p, _, _ in cases), "total": sum(n for _, _, n, _ in cases),
+            "by_type": {}, "question_seconds": {"median": seconds, "max": seconds * 2},
+            "module_ms": {"llm": 1000.0}, "tokens": {"input": tokens, "output": 100},
+            "judge_tokens": {"input": 50, "output": 10}, "judge_agreement": {"matched": 2, "of": 2},
+            "question_tokens": {"median": tokens / 2, "total": tokens}, "embedding_calls": 4,
+        },
+    }
+
+
+def test_a_case_that_fell_from_every_run_passing_to_one_is_a_regression(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계"), ("refuse", 2, 3, "거절")])
+    current = run_document(cases=[("agg", 1, 3, "집계"), ("refuse", 3, 3, "거절")], commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "회귀"
+    assert comparison.regressed == ["agg"]
+    assert comparison.newly_passing == ["refuse"]
+
+
+def test_the_same_overall_pass_rate_does_not_hide_a_regression(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계"), ("topic", 1, 3, "주제")])
+    current = run_document(cases=[("agg", 1, 3, "집계"), ("topic", 3, 3, "주제")], commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert (comparison.verdict, comparison.regressed) == ("회귀", ["agg"])
+    assert current["summary"]["passed"] == baseline["summary"]["passed"]
+
+
+def test_a_case_that_only_fell_to_two_of_three_is_not_a_regression(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계")])
+    current = run_document(cases=[("agg", 2, 3, "집계")], commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "이상 없음"
+    assert comparison.regressed == []
+
+
+def test_quality_is_not_compared_across_different_scales(tmp_path):
+    baseline = run_document(label="n20", cases=[("agg", 3, 3, "집계")], seconds=2.0)
+    current = run_document(label="n200", cases=[("agg", 0, 3, "집계")], seconds=9.0, commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "규모 다름"
+    assert comparison.regressed == []
+    assert "품질은 비교하지 않" in comparison.markdown
+    assert "9.0" in comparison.markdown
+
+
+def test_without_a_baseline_a_single_result_report_comes_out(tmp_path):
+    current = run_document(cases=[("agg", 3, 3, "집계"), ("topic", 2, 3, "주제")])
+
+    comparison = compare(current, None)
+
+    assert comparison.verdict == "기준선 없음"
+    assert "기준선이 됩니다" in comparison.markdown
+    for expected in ["5/6", "집계", "llm", "심판", "적재"]:
+        assert expected in comparison.markdown
+
+
+def test_comparison_report_shows_the_changes_and_the_conditions(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계")], seconds=2.0, tokens=1000)
+    current = run_document(cases=[("agg", 1, 3, "집계")], seconds=3.0, tokens=1400, commit="bbb2222",
+                           prompt_hash="p2")
+
+    markdown = compare(current, baseline).markdown
+
+    for expected in ["회귀", "agg", "3/3", "1/3", "2.0", "3.0", "1000", "1400", "p1", "p2", "bbb2222"]:
+        assert expected in markdown
+
+
+def test_a_refusal_is_recognised_however_the_agent_words_it(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, """
+[[cases]]
+id = "scope-2022"
+type = "범위 밖"
+turns = ["2022년 리뷰에서는 어떤 불만이 많았어?"]
+must_refuse = true
+""")
+    refusals = [
+        "적재 데이터로는 답할 수 없습니다.",
+        "2022년 리뷰는 볼 수 없습니다. 2023년 리뷰만 들어 있습니다.",
+        "적재된 데이터에서는 해당 상품이 확인되지 않습니다.",
+        "이 데이터만으로는 분석해 드릴 수 없어요.",
+    ]
+
+    for answer in refusals:
+        assert evaluate(cases, db, executor([turn(answer)]), runs=1)["cases"][0]["passed"] == 1, answer
+    made_up = evaluate(cases, db, executor([turn("2022년에는 끈적임 불만이 가장 많았습니다.")]), runs=1)
+    assert made_up["cases"][0]["passed"] == 0
