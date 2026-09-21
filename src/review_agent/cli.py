@@ -7,12 +7,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.tools import tool
-from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
 from langgraph.checkpoint.memory import InMemorySaver
 
 from review_agent.loader import DEFAULT_SCOPE, load_metrics
-from review_agent.search_tool import EMBEDDING_MODEL, open_store, search_reviews
+from review_agent.search_tool import EMBEDDING_MODEL, ReviewVectorStore, open_store, search_reviews
 from review_agent.sql_tool import MAX_ROWS, run_sql
 
 EXIT_COMMANDS = {"exit", "quit", "종료"}
@@ -89,7 +88,7 @@ def prompt_hash(template: str) -> str:
     return hashlib.sha256(template.encode()).hexdigest()[:8]
 
 
-def build_agent(db_path: Path, vectors_path: Path, model: str, store: InMemoryVectorStore | None = None):
+def build_agent(db_path: Path, vectors_path: Path, model: str, store: ReviewVectorStore | None = None):
     """`run_sql`, `search_reviews` 도구와 시스템 프롬프트로 대화를 기억하는 에이전트를 만든다.
 
     Args:
@@ -103,7 +102,7 @@ def build_agent(db_path: Path, vectors_path: Path, model: str, store: InMemoryVe
         """적재 데이터 SQLite에 SQL 한 문장을 읽기 전용으로 실행한다. 결과는 columns, 최대 50행의 rows, truncated이고, SQL 오류는 error 메시지로 돌아온다."""
         return run_sql(db_path, sql)
 
-    store = store or open_store(vectors_path, OpenAIEmbeddings(model=EMBEDDING_MODEL))
+    store = store or open_store(vectors_path, db_path, OpenAIEmbeddings(model=EMBEDDING_MODEL))
 
     @tool("search_reviews")
     def search_reviews_tool(
@@ -131,7 +130,7 @@ def build_agent(db_path: Path, vectors_path: Path, model: str, store: InMemoryVe
 def main() -> None:
     parser = argparse.ArgumentParser(description="적재 데이터에 한국어로 질문하는 리뷰 질의 에이전트")
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
-    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
+    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.npz"), help="리뷰 벡터 저장소 파일 경로")
     args = parser.parse_args()
     for path in (args.db, args.vectors):
         if not path.exists():

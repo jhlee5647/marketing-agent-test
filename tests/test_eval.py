@@ -41,7 +41,7 @@ def review(parent_asin, rating=5.0, text="Lovely."):
 def loaded_db(tmp_path, metas, reviews):
     """픽스처를 적재한 적재 데이터의 SQLite 경로."""
     db = tmp_path / "reviews.db"
-    load(metas, reviews, db, tmp_path / "vectors.json", FAKE_EMBEDDINGS)
+    load(metas, reviews, db, tmp_path / "vectors.npz", FAKE_EMBEDDINGS)
     return db
 
 

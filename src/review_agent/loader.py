@@ -9,9 +9,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.request import urlopen
 
+import numpy as np
 from dotenv import load_dotenv
 from langchain_core.embeddings import Embeddings
-from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
 
 from review_agent.search_tool import EMBEDDING_MODEL, document_prefix
@@ -22,6 +22,8 @@ REVIEW_URL = f"{UCSD_RAW}/review_categories/Beauty_and_Personal_Care.jsonl.gz"
 
 # 적재 범위의 기본값(얼굴 보습 제품). 실행 인자로 상위 경로까지 넓힐 수 있다.
 DEFAULT_SCOPE = ["Skin Care", "Face", "Creams & Moisturizers"]
+# 임베딩 한 번에 넘기는 리뷰 수. langchain_openai가 안에서 쓰는 묶음 크기와 같아 API 왕복 수는 달라지지 않는다.
+EMBEDDING_BATCH = 1000
 # 2023년 리뷰만 적재한다. 원본이 2023-09에서 끝나므로 상한은 두지 않는다. 적재 범위와 달리 축이 아니라 상수다.
 REVIEWS_SINCE_MS = int(datetime(2023, 1, 1, tzinfo=UTC).timestamp() * 1000)
 
@@ -125,21 +127,30 @@ def load(
     conn.execute("VACUUM")
 
     reviews = conn.execute(
-        "SELECT review_id, parent_asin, rating, title, text, reviewed_at, verified_purchase FROM reviews"
+        "SELECT review_id, parent_asin, rating, title, text, verified_purchase FROM reviews"
     ).fetchall()
-    store = InMemoryVectorStore(embeddings)
+    documents = [document_prefix(title) + text for _, _, _, title, text, _ in reviews]
     embedding_started = time.perf_counter()
-    store.add_texts(
-        [document_prefix(title) + text for _, _, _, title, text, _, _ in reviews],
-        metadatas=[
-            {"parent_asin": parent_asin, "rating": rating, "title": title, "reviewed_at": reviewed_at,
-             "verified_purchase": bool(verified)}
-            for _, parent_asin, rating, title, _, reviewed_at, verified in reviews
-        ],
-        ids=[str(review_id) for review_id, *_ in reviews],
-    )
+    # 한 번에 다 임베딩하면 리뷰 수 × 1,536개의 파이썬 실수가 동시에 살아 있다(리뷰 27만 건에 약 13GB).
+    # 묶음마다 float32로 바꿔 쌓으면 적재가 들고 있는 것이 결국 저장할 행렬 하나가 된다.
+    batches = [
+        np.asarray(embeddings.embed_documents(documents[at : at + EMBEDDING_BATCH]), dtype=np.float32)
+        for at in range(0, len(documents), EMBEDDING_BATCH)
+    ]
     embedding_seconds = time.perf_counter() - embedding_started
-    store.dump(str(vectors_path))
+    vectors = np.vstack(batches) if batches else np.zeros((0, 0), dtype=np.float32)
+    # 검색은 코사인 유사도다. 여기서 한 번 정규화해 두면 검색 한 번이 행렬 곱 하나로 끝난다.
+    vectors /= np.linalg.norm(vectors, axis=1, keepdims=True)
+    with vectors_path.open("wb") as file:
+        # 경로를 그대로 쓴다. np.savez에 경로를 넘기면 확장자가 .npz가 아닐 때 멋대로 붙인다.
+        np.savez(
+            file,
+            ids=np.array([review_id for review_id, *_ in reviews], dtype=np.int64),
+            vectors=vectors,
+            parent_asins=np.array([parent_asin for _, parent_asin, *_ in reviews]),
+            ratings=np.array([rating for _, _, rating, *_ in reviews], dtype=np.float32),
+            verified=np.array([bool(verified) for *_, verified in reviews], dtype=bool),
+        )
 
     counts = conn.execute("SELECT (SELECT COUNT(*) FROM products), (SELECT COUNT(*) FROM reviews)").fetchone()
     conn.close()
@@ -192,7 +203,7 @@ def _top_n_arg(text: str) -> int | None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="UCSD Beauty_and_Personal_Care에서 적재 범위 안의 상품을 적재한다.")
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
-    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
+    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.npz"), help="리뷰 벡터 저장소 파일 경로")
     parser.add_argument("--top-n", type=_top_n_arg, default=20, help="적재할 상위 상품 개수. all이면 적재 범위 안 전량")
     parser.add_argument(
         "--scope", type=_scope_arg, default=DEFAULT_SCOPE,

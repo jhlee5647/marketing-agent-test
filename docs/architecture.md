@@ -21,7 +21,7 @@ flowchart LR
 
     subgraph 적재데이터["적재 데이터 (git 제외)"]
         SQL[(SQLite<br/>products · reviews)]
-        VEC[(벡터 저장소<br/>리뷰 임베딩 JSON 파일)]
+        VEC[(벡터 저장소<br/>리뷰 임베딩 float32 행렬 파일)]
     end
 
     subgraph 질의["질의 (매 세션)"]
@@ -59,7 +59,7 @@ flowchart LR
 |---|---|---|
 | **SQLite `products`** | 상품 한 행: `parent_asin`, 상품명, 평균 별점, 평점 수, 가격, 스토어, 카테고리, 특징, 상세 | `run_sql` |
 | **SQLite `reviews`** | 리뷰 한 행: `review_id`, `parent_asin`, `asin`, 별점, 제목, 본문, `reviewed_at`, 도움돼요 수, 구매 인증 | `run_sql` |
-| **리뷰 벡터 저장소** (`data/vectors.json`) | LangChain `InMemoryVectorStore`를 JSON 파일로 저장한 것. 리뷰 한 건 = 문서 하나. ID는 `review_id`이고, 필터용으로 `parent_asin`·`rating`·`reviewed_at`·`verified_purchase`를 붙인다. | `search_reviews` |
+| **리뷰 벡터 저장소** (`data/vectors.npz`) | 리뷰 임베딩을 L2 정규화한 float32 행렬 하나(`vectors`)와, 행마다 `review_id`(`ids`)·필터용 `parent_asin`·`rating`·`verified_purchase`. 검색과 필터에 필요한 것만 담고, 리뷰 제목·본문은 SQLite `reviews`에서 읽는다(ADR-0004). | `search_reviews` |
 
 같은 리뷰가 SQLite와 벡터 저장소에 **같은 `review_id`** 로 들어 있다. 그래서 검색으로 찾은 리뷰를 SQL로 다시 조회하거나, 반대로 SQL로 찾은 리뷰를 인용할 수 있다.
 

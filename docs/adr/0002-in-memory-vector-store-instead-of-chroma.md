@@ -1,5 +1,5 @@
 ---
-Status: accepted
+Status: superseded by ADR-0004
 ---
 
 # 리뷰 벡터 저장소는 Chroma 대신 InMemoryVectorStore를 JSON 파일로 저장해 쓴다
