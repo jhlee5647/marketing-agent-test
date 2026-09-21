@@ -157,12 +157,21 @@ def _resources_table(current: dict, baseline: dict) -> str:
         row("질문당 중앙값", lambda run: f"{run['summary']['question_seconds']['median']:.1f}s"),
         row("질문당 최대", lambda run: f"{run['summary']['question_seconds']['max']:.1f}s"),
         row("모듈별", lambda run: " · ".join(f"{k} {v / 1000:.1f}s" for k, v in run["summary"]["module_ms"].items())),
+        row("로컬 유사도 계산", _local_similarity_line),
         row("토큰 입력", lambda run: str(run["summary"]["tokens"].get("input", 0))),
         row("토큰 출력", lambda run: str(run["summary"]["tokens"].get("output", 0))),
         row("심판 토큰", lambda run: str(sum(run["summary"]["judge_tokens"].values()))),
         row("벡터 저장소 로드", lambda run: f"{run['vector_store_open_ms'] / 1000:.1f}s"),
         row("적재", _load_line),
     ])
+
+
+def _local_similarity_line(run: dict) -> str:
+    """search_reviews에서 임베딩 왕복을 뺀 구간. 질문당 시간에서 규모를 따라 늘어나는 곳이라 실행당으로도 적는다."""
+    modules = run["summary"]["module_ms"]
+    calls = run["summary"]["embedding_calls"]
+    ms = modules.get("search_reviews", 0.0) - modules.get("embed_query", 0.0)
+    return f"{ms / 1000:.1f}s / {calls}회 = {ms / calls:.0f}ms/실행" if calls else "검색 없음"
 
 
 def _load_line(run: dict) -> str:
