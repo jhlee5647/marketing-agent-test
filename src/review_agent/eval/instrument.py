@@ -6,15 +6,14 @@ from uuid import uuid4
 
 from langchain_core.embeddings import Embeddings
 from langchain_core.tracers.run_collector import RunCollectorCallbackHandler
-from langchain_core.vectorstores import InMemoryVectorStore
 
 from review_agent.eval.harness import TurnResult
-from review_agent.search_tool import open_store
+from review_agent.search_tool import ReviewVectorStore, open_store
 
 READ_CHUNK_BYTES = 8 << 20
 
 
-def cold_store_load(vectors_path: Path, embeddings: Embeddings) -> tuple[InMemoryVectorStore, dict]:
+def cold_store_load(vectors_path: Path, db_path: Path, embeddings: Embeddings) -> tuple[ReviewVectorStore, dict]:
     """페이지 캐시를 버리고 벡터 저장소를 열어, 콜드 로드 시간과 실효 I/O 처리량을 함께 잰다.
 
     사람이 실제로 겪는 것이 콜드이고, 큰 규모에서는 벡터 파일과 파싱된 구조가 함께 RAM에 들어가지 않아
@@ -32,7 +31,7 @@ def cold_store_load(vectors_path: Path, embeddings: Embeddings) -> tuple[InMemor
     read_ms = _timed_read(vectors_path)
     _drop_page_cache(vectors_path)
     start = time.perf_counter()
-    store = open_store(vectors_path, embeddings)
+    store = open_store(vectors_path, db_path, embeddings)
     open_ms = (time.perf_counter() - start) * 1000
     return store, {
         "vector_store_open_ms": open_ms,

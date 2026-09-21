@@ -19,7 +19,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="케이스를 실행해 답변과 궤적을 채점하고 소요 시간과 토큰을 기록한다.")
     parser.add_argument("--cases", type=Path, default=Path("evals/cases.toml"), help="케이스 파일 경로")
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
-    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
+    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.npz"), help="리뷰 벡터 저장소 파일 경로")
     parser.add_argument("--runs", type=int, default=3, help="케이스 하나를 실행할 횟수")
     parser.add_argument("--case", action="append", metavar="ID",
                         help="이 id의 케이스만 돌린다. 여러 번 줄 수 있다. 주면 케이스 전부를 돌리는 것이 아니므로"
@@ -38,7 +38,7 @@ def main() -> None:
     judge_model = os.environ.get("EVAL_JUDGE_MODEL")
     embeddings = TimingEmbeddings(OpenAIEmbeddings(model=EMBEDDING_MODEL))
 
-    store, vector_store_load = cold_store_load(args.vectors, embeddings)
+    store, vector_store_load = cold_store_load(args.vectors, args.db, embeddings)
     agent = build_agent(args.db, args.vectors, model, store)
     print(f"벡터 저장소 로드: {vector_store_load['vector_store_open_ms'] / 1000:.1f}s"
           " (콜드, 세션당 1회, 질문당 시간과 섞지 않는다)")
