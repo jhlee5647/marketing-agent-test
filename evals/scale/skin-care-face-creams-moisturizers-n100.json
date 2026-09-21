@@ -1,5 +1,5 @@
 {
-  "run_id": "skin-care-face-creams-moisturizers-n100-ecd44b5-f4e569",
+  "run_id": "skin-care-face-creams-moisturizers-n100-165fb3c-e9d800",
   "scale": {
     "label": "skin-care-face-creams-moisturizers-n100",
     "scope": [
@@ -20,25 +20,25 @@
       "Face",
       "Creams & Moisturizers"
     ],
-    "load_seconds": 198.0530825349997,
-    "embedding_seconds": 24.506739338999978,
+    "load_seconds": 181.55452550799964,
+    "embedding_seconds": 24.9065435099983,
     "db_bytes": 3887104,
-    "vectors_bytes": 457416268
+    "vectors_bytes": 69680324
   },
   "environment": {
     "host_label": "r7i.xlarge",
     "total_ram_bytes": 33085460480,
-    "data_free_bytes": 95302094848
+    "data_free_bytes": 65678569472
   },
   "model": "gpt-5.4-mini",
   "judge_model": null,
   "prompt_hash": "ac32c759",
-  "commit": "ecd44b5",
-  "vector_store_open_ms": 8064.902550000625,
-  "vector_store_read_ms": 3461.1413330003415,
-  "vector_store_parse_ms": 4603.761217000283,
-  "vector_store_mb_per_second": 132.1576393424772,
-  "vector_store_bytes": 457416268,
+  "commit": "165fb3c",
+  "vector_store_open_ms": 226.39406500093173,
+  "vector_store_read_ms": 141.47693199993228,
+  "vector_store_parse_ms": 84.91713300099946,
+  "vector_store_mb_per_second": 492.5207453610413,
+  "vector_store_bytes": 69680324,
   "cases": [
     {
       "id": "agg-total-reviews",
@@ -68,19 +68,19 @@
           ],
           "timings_ms": {
             "llm": [
-              1134.768,
-              952.8539999999999
+              767.4720000000001,
+              662.039
             ],
             "run_sql": [
-              2.613
+              2.497
             ],
             "total": [
-              2101.995889999671
+              1442.4064189988712
             ]
           },
           "tokens": {
             "input": 3184,
-            "output": 89
+            "output": 67
           },
           "embedding_calls": 0
         }
@@ -108,7 +108,7 @@
             {
               "tool": "run_sql",
               "args": {
-                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '% moisturizer %' OR title LIKE '% cream %' LIMIT 5;"
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%moisturizer%' OR title LIKE '%cream%' OR title LIKE '%face%' LIMIT 10;"
               }
             },
             {
@@ -120,70 +120,38 @@
               }
             },
             {
-              "tool": "search_reviews",
+              "tool": "run_sql",
               "args": {
-                "query": "sticky tacky greasy residue film",
-                "parent_asin": "B08VF8KG7V",
-                "k": 10
-              }
-            },
-            {
-              "tool": "search_reviews",
-              "args": {
-                "query": "sticky tacky greasy residue film",
-                "parent_asin": "B0C6192X68",
-                "k": 10
-              }
-            },
-            {
-              "tool": "search_reviews",
-              "args": {
-                "query": "sticky tacky greasy residue film",
-                "parent_asin": "B0B85HJYZ3",
-                "k": 10
-              }
-            },
-            {
-              "tool": "search_reviews",
-              "args": {
-                "query": "sticky tacky greasy residue film",
-                "parent_asin": "B0BBSP2JNQ",
-                "k": 10
+                "sql": "SELECT COUNT(*) AS total_reviews,\n       SUM(CASE WHEN lower(title) LIKE '%sticky%' OR lower(text) LIKE '%sticky%' OR lower(title) LIKE '%greasy%' OR lower(text) LIKE '%greasy%' OR lower(title) LIKE '%oily%' OR lower(text) LIKE '%oily%' OR lower(title) LIKE '%tacky%' OR lower(text) LIKE '%tacky%' OR lower(title) LIKE '%residue%' OR lower(text) LIKE '%residue%' OR lower(title) LIKE '%film%' OR lower(text) LIKE '%film%' THEN 1 ELSE 0 END) AS reviews_mentioning_stickiness\nFROM reviews\nWHERE parent_asin = 'B09TPXZ9MB';"
               }
             }
           ],
           "timings_ms": {
             "llm": [
-              595.345,
-              1032.823,
-              2189.235
+              679.648,
+              882.337,
+              1192.202,
+              1567.353
             ],
             "run_sql": [
-              0.808
+              0.858,
+              3.2279999999999998
             ],
             "search_reviews": [
-              568.789,
-              604.553,
-              586.905,
-              261.876,
-              572.4979999999999
+              482.283
             ],
             "total": [
-              4437.932299999375
+              4824.452193002799
             ],
             "embed_query": [
-              235.9756310015655,
-              494.8511479997251,
-              490.4594890012959,
-              541.6838210003334,
-              577.0537080006761
+              478.2585940010904
             ]
           },
           "tokens": {
-            "input": 9617,
-            "output": 609
+            "input": 9955,
+            "output": 526
           },
-          "embedding_calls": 5
+          "embedding_calls": 1
         }
       ]
     },
@@ -211,13 +179,13 @@
             {
               "tool": "run_sql",
               "args": {
-                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%L''Oreal Paris Collagen Face Moisturizer%' OR title LIKE '%L''Oreal Paris Collagen%' OR title LIKE '%Collagen Face Moisturizer%'"
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%L''Oreal Paris Collagen Face Moisturizer%' LIMIT 10;"
               }
             },
             {
               "tool": "search_reviews",
               "args": {
-                "query": "praise benefits smooth skin reduce wrinkles moisturizing lightweight absorbs well pleasant scent",
+                "query": "praise benefit moisturizing smoothing wrinkles skin texture value absorb smell",
                 "parent_asin": "B0C46SPKJ9",
                 "min_rating": 5,
                 "max_rating": 5,
@@ -228,26 +196,26 @@
           ],
           "timings_ms": {
             "llm": [
-              763.177,
-              754.623,
-              1863.23
+              895.189,
+              810.35,
+              1357.016
             ],
             "run_sql": [
-              0.924
+              0.7969999999999999
             ],
             "search_reviews": [
-              159.506
+              135.666
             ],
             "total": [
-              3552.3790379993443
+              3209.4579369986604
             ],
             "embed_query": [
-              123.27711999932944
+              131.69455000024755
             ]
           },
           "tokens": {
-            "input": 5870,
-            "output": 450
+            "input": 5782,
+            "output": 351
           },
           "embedding_calls": 1
         }
@@ -272,28 +240,28 @@
       }
     },
     "question_seconds": {
-      "median": 3.5523790379993443,
-      "max": 4.437932299999375
+      "median": 3.2094579369986604,
+      "max": 4.824452193002799
     },
     "question_tokens": {
-      "median": 6320,
-      "total": 19819
+      "median": 6133,
+      "total": 19865
     },
     "module_ms": {
-      "llm": 9286.055,
-      "run_sql": 4.345000000000001,
-      "search_reviews": 2754.127,
-      "embed_query": 2463.3009170029254
+      "llm": 8813.606,
+      "run_sql": 7.379999999999999,
+      "search_reviews": 617.9490000000001,
+      "embed_query": 609.9531440013379
     },
     "tokens": {
-      "input": 18671,
-      "output": 1148
+      "input": 18921,
+      "output": 944
     },
     "judge_tokens": {},
     "judge_agreement": {
       "matched": 0,
       "of": 2
     },
-    "embedding_calls": 6
+    "embedding_calls": 2
   }
 }
