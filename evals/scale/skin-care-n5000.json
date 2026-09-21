@@ -1,5 +1,5 @@
 {
-  "run_id": "skin-care-n5000-ecd44b5-4f9194",
+  "run_id": "skin-care-n5000-165fb3c-a1e158",
   "scale": {
     "label": "skin-care-n5000",
     "scope": [
@@ -16,25 +16,25 @@
     "scope": [
       "Skin Care"
     ],
-    "load_seconds": 911.0450981800004,
-    "embedding_seconds": 526.2082000160008,
+    "load_seconds": 681.0916620020034,
+    "embedding_seconds": 515.2640981830009,
     "db_bytes": 70692864,
-    "vectors_bytes": 7254136316
+    "vectors_bytes": 1104653688
   },
   "environment": {
     "host_label": "r7i.xlarge",
     "total_ram_bytes": 33085460480,
-    "data_free_bytes": 81314492416
+    "data_free_bytes": 65678454784
   },
   "model": "gpt-5.4-mini",
   "judge_model": null,
   "prompt_hash": "ac32c759",
-  "commit": "ecd44b5",
-  "vector_store_open_ms": 135008.77045000016,
-  "vector_store_read_ms": 54319.29381699956,
-  "vector_store_parse_ms": 80689.4766330006,
-  "vector_store_mb_per_second": 133.54621914708642,
-  "vector_store_bytes": 7254136316,
+  "commit": "165fb3c",
+  "vector_store_open_ms": 8420.626525003172,
+  "vector_store_read_ms": 7427.341298000101,
+  "vector_store_parse_ms": 993.2852270030708,
+  "vector_store_mb_per_second": 148.72800961730962,
+  "vector_store_bytes": 1104653688,
   "cases": [
     {
       "id": "agg-total-reviews",
@@ -64,19 +64,19 @@
           ],
           "timings_ms": {
             "llm": [
-              2266.547,
-              1169.159
+              974.908,
+              787.4219999999999
             ],
             "run_sql": [
-              14.562000000000001
+              15.336
             ],
             "total": [
-              3462.3858720005956
+              1789.3666210002266
             ]
           },
           "tokens": {
             "input": 3168,
-            "output": 67
+            "output": 65
           },
           "embedding_calls": 0
         }
@@ -104,62 +104,55 @@
             {
               "tool": "run_sql",
               "args": {
-                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%sticky%' OR title LIKE '%stickiness%' OR title LIKE '%tacky%' OR title LIKE '%greasy%' OR title LIKE '%residue%' LIMIT 10;"
+                "sql": "SELECT DISTINCT parent_asin, title FROM products ORDER BY parent_asin LIMIT 1;"
               }
             },
             {
               "tool": "search_reviews",
               "args": {
-                "query": "sticky tacky greasy residue",
-                "parent_asin": "B07HS43JZP",
-                "k": 10
+                "query": "sticky tacky residue greasy absorbs slowly",
+                "parent_asin": "7543036517",
+                "k": 5
               }
             },
             {
               "tool": "search_reviews",
               "args": {
-                "query": "sticky tacky greasy residue",
-                "parent_asin": "B0874GFK2Z",
-                "k": 10
-              }
-            },
-            {
-              "tool": "search_reviews",
-              "args": {
-                "query": "sticky tacky greasy residue",
-                "parent_asin": "B0BQZ6NKPW",
+                "query": "sticky tacky residue greasy leaves a film",
+                "parent_asin": "7543036517",
+                "min_rating": 1,
+                "max_rating": 3,
                 "k": 10
               }
             }
           ],
           "timings_ms": {
             "llm": [
-              717.8670000000001,
-              888.64,
-              1639.127
+              785.2249999999999,
+              653.784,
+              764.937,
+              1411.4070000000002
             ],
             "run_sql": [
-              2.262
+              0.907
             ],
             "search_reviews": [
-              1485.373,
-              945.394,
-              1079.713
+              533.35,
+              186.615
             ],
             "total": [
-              4747.531736000383
+              4352.9817719972925
             ],
             "embed_query": [
-              376.2354709997453,
-              517.3729109992564,
-              1142.738078999173
+              492.988811001851,
+              146.23316799770691
             ]
           },
           "tokens": {
-            "input": 8471,
-            "output": 420
+            "input": 7381,
+            "output": 318
           },
-          "embedding_calls": 3
+          "embedding_calls": 2
         }
       ]
     },
@@ -187,13 +180,13 @@
             {
               "tool": "run_sql",
               "args": {
-                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%WHOLENATURALS Pure Castile Soap Liquid%' LIMIT 10;"
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%WHOLENATURALS Pure Castile Soap Liquid%' OR title LIKE '%WholeNaturals%' OR title LIKE '%Castile Soap%' LIMIT 10;"
               }
             },
             {
               "tool": "search_reviews",
               "args": {
-                "query": "praise good smell gentle mild versatile lathers well moisturizing cleaning",
+                "query": "praise, compliments, liked, love, gentle, cleans well, moisturizing, unscented, value, lathers, baby, sensitive skin",
                 "parent_asin": "B0BRJH1WL4",
                 "min_rating": 5,
                 "max_rating": 5,
@@ -204,26 +197,26 @@
           ],
           "timings_ms": {
             "llm": [
-              998.6270000000001,
-              1039.0790000000002,
-              2228.211
+              900.578,
+              983.4699999999999,
+              2203.181
             ],
             "run_sql": [
-              3.745
+              5.54
             ],
             "search_reviews": [
-              509.764
+              179.27
             ],
             "total": [
-              4792.077013999005
+              4282.900956000958
             ],
             "embed_query": [
-              136.74023400017177
+              138.2263689993124
             ]
           },
           "tokens": {
-            "input": 5931,
-            "output": 515
+            "input": 6773,
+            "output": 566
           },
           "embedding_calls": 1
         }
@@ -248,28 +241,28 @@
       }
     },
     "question_seconds": {
-      "median": 4.747531736000383,
-      "max": 4.792077013999005
+      "median": 4.282900956000958,
+      "max": 4.3529817719972925
     },
     "question_tokens": {
-      "median": 6446,
-      "total": 18572
+      "median": 7339,
+      "total": 18271
     },
     "module_ms": {
-      "llm": 10947.257000000001,
-      "run_sql": 20.569000000000003,
-      "search_reviews": 4020.244,
-      "embed_query": 2173.0866949983465
+      "llm": 9464.912,
+      "run_sql": 21.783,
+      "search_reviews": 899.235,
+      "embed_query": 777.4483479988703
     },
     "tokens": {
-      "input": 17570,
-      "output": 1002
+      "input": 17322,
+      "output": 949
     },
     "judge_tokens": {},
     "judge_agreement": {
       "matched": 0,
       "of": 2
     },
-    "embedding_calls": 4
+    "embedding_calls": 3
   }
 }

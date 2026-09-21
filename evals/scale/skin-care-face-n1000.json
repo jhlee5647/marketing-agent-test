@@ -1,5 +1,5 @@
 {
-  "run_id": "skin-care-face-n1000-ecd44b5-b559e5",
+  "run_id": "skin-care-face-n1000-165fb3c-04c758",
   "scale": {
     "label": "skin-care-face-n1000",
     "scope": [
@@ -18,25 +18,25 @@
       "Skin Care",
       "Face"
     ],
-    "load_seconds": 345.2292590119996,
-    "embedding_seconds": 121.60797665099926,
+    "load_seconds": 278.30481994500224,
+    "embedding_seconds": 118.28298234200338,
     "db_bytes": 20877312,
-    "vectors_bytes": 2175315434
+    "vectors_bytes": 331199921
   },
   "environment": {
     "host_label": "r7i.xlarge",
     "total_ram_bytes": 33085460480,
-    "data_free_bytes": 93105774592
+    "data_free_bytes": 65678503936
   },
   "model": "gpt-5.4-mini",
   "judge_model": null,
   "prompt_hash": "ac32c759",
-  "commit": "ecd44b5",
-  "vector_store_open_ms": 39657.09104300004,
-  "vector_store_read_ms": 15589.791268999761,
-  "vector_store_parse_ms": 24067.299774000276,
-  "vector_store_mb_per_second": 139.53460931357088,
-  "vector_store_bytes": 2175315434,
+  "commit": "165fb3c",
+  "vector_store_open_ms": 2702.886300998216,
+  "vector_store_read_ms": 1615.8136439989903,
+  "vector_store_parse_ms": 1087.0726569992257,
+  "vector_store_mb_per_second": 204.9740836327577,
+  "vector_store_bytes": 331199921,
   "cases": [
     {
       "id": "agg-total-reviews",
@@ -66,19 +66,19 @@
           ],
           "timings_ms": {
             "llm": [
-              1701.935,
-              862.834
+              703.185,
+              669.4369999999999
             ],
             "run_sql": [
-              5.803
+              6.05
             ],
             "total": [
-              2582.5677619995986
+              1390.0569770012225
             ]
           },
           "tokens": {
             "input": 3172,
-            "output": 68
+            "output": 65
           },
           "embedding_calls": 0
         }
@@ -106,72 +106,62 @@
             {
               "tool": "run_sql",
               "args": {
-                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%sticky%' OR title LIKE '%stickiness%' OR title LIKE '%tacky%' OR title LIKE '%residue%' OR title LIKE '%film%' LIMIT 20;"
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%stick%' OR title LIKE '%sticky%' OR title LIKE '%gel%' OR title LIKE '%cream%' LIMIT 10;"
               }
             },
             {
               "tool": "search_reviews",
               "args": {
-                "query": "sticky tacky residue film non-greasy",
-                "parent_asin": "B0BTHKP3SZ",
-                "k": 10
+                "query": "sticky tacky greasy residue film sticky feeling",
+                "parent_asin": "B07T8F3VS9",
+                "k": 5
               }
             },
             {
               "tool": "search_reviews",
               "args": {
-                "query": "sticky tacky residue film non-greasy",
-                "parent_asin": "B084KZ2CG1",
-                "k": 10
+                "query": "sticky tacky greasy residue film sticky feeling",
+                "parent_asin": "B09TPXZ9MB",
+                "k": 5
               }
             },
             {
               "tool": "search_reviews",
               "args": {
-                "query": "sticky tacky residue film non-greasy",
-                "parent_asin": "B098VLYWFC",
-                "k": 10
-              }
-            },
-            {
-              "tool": "search_reviews",
-              "args": {
-                "query": "sticky tacky residue film non-greasy",
-                "parent_asin": "B07TKQ4C7N",
-                "k": 10
+                "query": "sticky tacky greasy residue film sticky feeling",
+                "parent_asin": "B01D1CJOOQ",
+                "k": 5
               }
             }
           ],
           "timings_ms": {
             "llm": [
-              926.7180000000001,
-              1635.379,
-              2209.137
+              768.467,
+              1261.741,
+              1758.18
             ],
             "run_sql": [
-              3.245
+              0.897
             ],
             "search_reviews": [
-              887.141,
-              985.812,
-              984.028,
-              561.9929999999999
+              272.098,
+              276.79900000000004,
+              270.19100000000003
             ],
             "total": [
-              5775.054686999283
+              4079.197438000847
             ],
             "embed_query": [
-              455.7577970008424,
-              670.0139510012377,
-              745.9193729991966,
-              755.5351549999614
+              229.13303800305584,
+              235.27864000061527,
+              243.69814599776873
             ]
           },
           "tokens": {
-            "input": 9121,
-            "output": 540
+            "input": 7151,
+            "output": 418
           },
-          "embedding_calls": 4
+          "embedding_calls": 3
         }
       ]
     },
@@ -199,13 +189,13 @@
             {
               "tool": "run_sql",
               "args": {
-                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%LANEIGE Lip Sleeping Mask Peppermint: Nourish & Hydrate with Vitamin C and Antioxidants%';"
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%LANEIGE Lip Sleeping Mask Peppermint%';"
               }
             },
             {
               "tool": "search_reviews",
               "args": {
-                "query": "praise compliment love moisturizing hydrating peppermint taste smell soft smooth overnight",
+                "query": "praise, love, great, amazing, moisturizing, hydrating, scent, flavor, texture, soft lips",
                 "parent_asin": "B09PLRZGN1",
                 "min_rating": 5,
                 "max_rating": 5,
@@ -216,26 +206,26 @@
           ],
           "timings_ms": {
             "llm": [
-              780.7199999999999,
-              993.2919999999999,
-              1600.614
+              667.2810000000001,
+              910.4100000000001,
+              1773.28
             ],
             "run_sql": [
-              2.529
+              2.291
             ],
             "search_reviews": [
-              256.094
+              179.69299999999998
             ],
             "total": [
-              3646.0507699994196
+              3544.643541001278
             ],
             "embed_query": [
-              135.02026999958616
+              166.15124999952968
             ]
           },
           "tokens": {
-            "input": 5728,
-            "output": 311
+            "input": 5754,
+            "output": 437
           },
           "embedding_calls": 1
         }
@@ -260,28 +250,28 @@
       }
     },
     "question_seconds": {
-      "median": 3.6460507699994196,
-      "max": 5.775054686999283
+      "median": 3.544643541001278,
+      "max": 4.079197438000847
     },
     "question_tokens": {
-      "median": 6039,
-      "total": 18940
+      "median": 6191,
+      "total": 16997
     },
     "module_ms": {
-      "llm": 10710.629,
-      "run_sql": 11.577,
-      "search_reviews": 3675.068,
-      "embed_query": 2762.2465460008243
+      "llm": 8511.981,
+      "run_sql": 9.238,
+      "search_reviews": 998.7810000000001,
+      "embed_query": 874.2610740009695
     },
     "tokens": {
-      "input": 18021,
-      "output": 919
+      "input": 16077,
+      "output": 920
     },
     "judge_tokens": {},
     "judge_agreement": {
       "matched": 0,
       "of": 2
     },
-    "embedding_calls": 5
+    "embedding_calls": 4
   }
 }
