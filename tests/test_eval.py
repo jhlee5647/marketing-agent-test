@@ -1,13 +1,17 @@
 import json
+from pathlib import Path
 
 from langchain_core.embeddings import DeterministicFakeEmbedding
 
+from review_agent.cli import SYSTEM_PROMPT, build_system_prompt, prompt_hash
 from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import TurnResult, evaluate
 from review_agent.eval.compare import compare
 from review_agent.eval.judge import JudgeVerdict
-from review_agent.eval.report import run_meta, save_run
-from review_agent.loader import load
+from review_agent.eval.report import label_of, latest_run, run_meta, save_run
+from review_agent.loader import DEFAULT_SCOPE, load, scale_label
+
+COMMITTED_RUNS = Path(__file__).resolve().parent.parent / "evals" / "runs"
 
 FACE = ["Beauty & Personal Care", "Skin Care", "Face", "Creams & Moisturizers"]
 FAKE_EMBEDDINGS = DeterministicFakeEmbedding(size=8)
@@ -355,8 +359,11 @@ def test_run_meta_carries_the_scale_label_and_the_load_metrics(tmp_path):
 
     info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=21300.0)
 
-    assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
-    assert info["run_id"].startswith("n1-")
+    assert info["scale"] == {
+        "label": "skin-care-face-creams-moisturizers-n20", "scope": DEFAULT_SCOPE, "top_n": 20,
+        "products": 1, "reviews": 3,
+    }
+    assert info["run_id"].startswith("skin-care-face-creams-moisturizers-n20-")
     assert info["model"] == "gpt-5.4-mini"
     assert info["vector_store_open_ms"] == 21300.0
     assert info["load_metrics"]["reviews"] == 3
@@ -369,7 +376,8 @@ def test_run_meta_says_when_the_load_metrics_are_missing(tmp_path):
     info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=0.0)
 
     assert info["load_metrics"] is None
-    assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
+    # 측정값이 없으면 상위 N을 모른다. 적재된 상품 수를 상위 N으로 읽던 옛 라벨을 따른다.
+    assert info["scale"]["label"] == "skin-care-face-creams-moisturizers-n1"
 
 
 def verdicts(*passes):
@@ -458,11 +466,17 @@ def test_judge_tokens_are_counted_apart_from_the_agent_tokens(tmp_path):
     assert summary["judge_tokens"] == {"input": 50, "output": 10}
 
 
-def run_document(label="n20", cases=(), seconds=2.0, tokens=1000, commit="aaa1111", prompt_hash="p1"):
-    """비교에 넣을 평가 결과 하나. (케이스 id, 통과 횟수, 실행 횟수, 유형) 목록으로 만든다."""
+def run_document(label="n20", cases=(), seconds=2.0, tokens=1000, commit="aaa1111", prompt_hash="p1", scope=None):
+    """비교에 넣을 평가 결과 하나. (케이스 id, 통과 횟수, 실행 횟수, 유형) 목록으로 만든다.
+
+    `scope`를 주지 않으면 적재 범위 필드가 없던 옛 결과 파일 형식이 된다.
+    """
+    scale = {"label": label, "products": 20, "reviews": 4744}
+    if scope is not None:
+        scale = {"label": label, "scope": scope, "top_n": 20, "products": 20, "reviews": 4744}
     return {
         "run_id": f"{label}-{commit}-000001",
-        "scale": {"label": label, "products": 20, "reviews": 4744},
+        "scale": scale,
         "load_metrics": {"load_seconds": 60.0, "embedding_seconds": 10.0, "db_bytes": 1, "vectors_bytes": 2},
         "model": "gpt-5.4-mini", "judge_model": "gpt-5.4", "prompt_hash": prompt_hash, "commit": commit,
         "vector_store_open_ms": 13000.0,
@@ -522,6 +536,64 @@ def test_quality_is_not_compared_across_different_scales(tmp_path):
     assert comparison.regressed == []
     assert "품질은 비교하지 않" in comparison.markdown
     assert "9.0" in comparison.markdown
+
+
+def test_scale_label_carries_both_the_scope_and_the_top_n():
+    assert scale_label(DEFAULT_SCOPE, 20) == "skin-care-face-creams-moisturizers-n20"
+    assert scale_label(["Skin Care", "Face"], 20) != scale_label(["Skin Care"], 20)
+    assert scale_label(["Skin Care"], 20) != scale_label(["Skin Care"], 100)
+    assert scale_label(["Skin Care"], None) == "skin-care-all"
+
+
+def test_quality_is_not_compared_when_only_the_load_scope_differs(tmp_path):
+    baseline = run_document(label=scale_label(DEFAULT_SCOPE, 20), scope=DEFAULT_SCOPE, cases=[("agg", 3, 3, "집계")])
+    current = run_document(label=scale_label(["Skin Care"], 20), scope=["Skin Care"], cases=[("agg", 0, 3, "집계")],
+                           commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "규모 다름"
+    assert comparison.regressed == []
+    assert "품질은 비교하지 않" in comparison.markdown
+
+
+def test_an_old_result_without_a_scope_field_is_the_same_scale_as_face_moisturizer_top_20(tmp_path):
+    old = run_document(label="n20", cases=[("agg", 3, 3, "집계")])
+    current = run_document(label=scale_label(DEFAULT_SCOPE, 20), scope=DEFAULT_SCOPE, cases=[("agg", 1, 3, "집계")],
+                           commit="bbb2222")
+
+    assert label_of(old) == label_of(current)
+    assert compare(current, old).verdict == "회귀"
+
+
+def test_the_committed_results_are_still_found_as_the_face_moisturizer_top_20_baseline():
+    old = [
+        run
+        for path in COMMITTED_RUNS.glob("*.json")
+        for run in [json.loads(path.read_text(encoding="utf-8"))]
+        if "scope" not in run["scale"]
+    ]
+
+    assert old, "적재 범위 필드가 없는 커밋된 결과가 있어야 이 호환 규칙이 의미를 갖는다"
+    assert {label_of(run) for run in old} == {scale_label(DEFAULT_SCOPE, 20)}
+    assert latest_run(COMMITTED_RUNS, scale_label(DEFAULT_SCOPE, 20), exclude="없는-run-id") is not None
+
+
+def test_the_load_scope_is_injected_into_the_system_prompt_at_run_time():
+    narrow = build_system_prompt(DEFAULT_SCOPE, 20)
+    wide = build_system_prompt(["Skin Care"], 40215)
+
+    assert "`Skin Care > Face > Creams & Moisturizers`" in narrow and "20개 상품" in narrow
+    assert "`Skin Care`" in wide and "40215개 상품" in wide
+    assert "Creams & Moisturizers" not in wide
+
+
+def test_prompt_hash_ignores_the_load_scope_and_follows_the_rest_of_the_prompt():
+    # 적재 범위 문구가 템플릿에 없으므로 범위를 바꿔도 해시가 변할 수 없다.
+    assert "Creams & Moisturizers" not in SYSTEM_PROMPT
+    assert build_system_prompt(DEFAULT_SCOPE, 20) != build_system_prompt(["Skin Care"], 20)
+
+    assert prompt_hash(SYSTEM_PROMPT) != prompt_hash(SYSTEM_PROMPT.replace("항상 한국어로 답한다", "항상 영어로 답한다"))
 
 
 def test_without_a_baseline_a_single_result_report_comes_out(tmp_path):

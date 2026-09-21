@@ -1,5 +1,4 @@
 import argparse
-import hashlib
 import os
 import time
 from pathlib import Path
@@ -7,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 
-from review_agent.cli import SYSTEM_PROMPT, build_agent
+from review_agent.cli import SYSTEM_PROMPT, build_agent, prompt_hash
 from review_agent.eval.cases import load_cases
 from review_agent.eval.compare import compare
 from review_agent.eval.harness import evaluate
@@ -49,10 +48,7 @@ def main() -> None:
     judge = openai_judge(judge_model) if judge_model else None
     result = evaluate(cases, args.db, agent_executor(agent, embeddings), judge, args.runs)
 
-    meta = run_meta(
-        args.db, model, judge_model,
-        hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8], store_open_ms,
-    )
+    meta = run_meta(args.db, model, judge_model, prompt_hash(SYSTEM_PROMPT), store_open_ms)
     baseline = latest_run(args.runs_dir, meta["scale"]["label"], meta["run_id"]) if args.runs_dir.exists() else None
     run_path, details_path = save_run(result, args.runs_dir, args.details_dir, meta)
     comparison = compare({**meta, **result}, baseline)
