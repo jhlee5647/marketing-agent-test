@@ -8,7 +8,7 @@ from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import TurnResult, evaluate
 from review_agent.eval.compare import compare
 from review_agent.eval.judge import JudgeVerdict
-from review_agent.eval.report import label_of, latest_run, run_meta, save_run
+from review_agent.eval.report import label_of, latest_run, run_meta, save_run, save_scale
 from review_agent.loader import DEFAULT_SCOPE, load, scale_label
 
 COMMITTED_RUNS = Path(__file__).resolve().parent.parent / "evals" / "runs"
@@ -667,3 +667,91 @@ must_refuse = true
         assert evaluate(cases, db, executor([turn(answer)]), runs=1)["cases"][0]["passed"] == 1, answer
     made_up = evaluate(cases, db, executor([turn("2022년에는 끈적임 불만이 가장 많았습니다.")]), runs=1)
     assert made_up["cases"][0]["passed"] == 0
+
+
+THREE_CASES = """
+[[cases]]
+id = "agg-count"
+type = "집계"
+turns = ["리뷰가 몇 건이야?"]
+expected_sql = "SELECT COUNT(*) FROM reviews"
+
+[[cases]]
+id = "topic-stickiness"
+type = "주제"
+turns = ["사람들이 끈적임에 대해 뭐라고 해?"]
+rubric = "끈적임에 대한 반복되는 반응을 들고 review_id와 원문 인용을 붙인다."
+
+[[cases]]
+id = "refuse-korea-sales"
+type = "거절"
+turns = ["한국 매출은?"]
+must_refuse = true
+"""
+
+
+def test_the_case_id_filter_runs_only_the_named_cases_the_given_number_of_times(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    path = write_cases(tmp_path, THREE_CASES)
+
+    cases = load_cases(path, db, ["refuse-korea-sales", "agg-count"])
+    result = evaluate(cases, db, executor([turn("3건입니다.")], [turn("3건입니다.")],
+                                          [turn("알 수 없습니다.")], [turn("알 수 없습니다.")]), runs=2)
+
+    # 케이스 파일에 적힌 순서를 따르고, 지정하지 않은 주제 케이스는 아예 돌지 않는다.
+    assert [case["id"] for case in result["cases"]] == ["agg-count", "refuse-korea-sales"]
+    assert [case["total"] for case in result["cases"]] == [2, 2]
+
+
+def test_an_unknown_case_id_is_refused_instead_of_silently_running_nothing(tmp_path):
+    path = write_cases(tmp_path, THREE_CASES)
+
+    try:
+        load_cases(path, None, ["agg-count", "agg-오타"])
+    except ValueError as error:
+        assert "agg-오타" in str(error)
+    else:
+        raise AssertionError("없는 id를 그냥 지나쳤다")
+
+
+def test_without_a_judge_a_rubric_case_still_runs_and_its_answer_is_left_unscored(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+
+    result = evaluate(cases, db, executor([turn("끈적인다는 말이 많습니다.")]), judge=None, runs=1)
+
+    attempt = result["cases"][0]["runs"][0]
+    assert attempt["answer_ok"] is None, "채점하지 않은 것과 실패한 것은 다르다"
+    assert attempt["judge_tokens"] == {}
+    assert result["summary"]["judge_tokens"] == {}
+    assert "채점하지 않았다" in attempt["fail_reason"]
+
+
+def test_a_reduced_measurement_lands_under_the_scale_directory_and_is_never_found_as_a_baseline(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    cases = load_cases(write_cases(tmp_path, THREE_CASES), db, ["agg-count"])
+    label = scale_label(DEFAULT_SCOPE, 20)
+    meta_ = {
+        "run_id": f"{label}-abcdef0-000001", "scale": {"label": label, "scope": DEFAULT_SCOPE, "top_n": 20},
+        "vector_store_open_ms": 3280.0, "vector_store_read_ms": 470.0, "vector_store_mb_per_second": 408.0,
+    }
+    measured = turn("적재된 리뷰는 3건입니다.", timings_ms={"total": [1000.0], "llm": [800.0], "run_sql": [20.0]})
+    result = evaluate(cases, db, executor([measured]), runs=1)
+    runs_dir = tmp_path / "runs"
+    runs_dir.mkdir()
+    (runs_dir / "그 규모의 평가.json").write_text(
+        json.dumps(run_document(label=label, scope=DEFAULT_SCOPE, cases=[("agg", 3, 3, "집계")]), ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    path = save_scale(result, tmp_path / "scale", meta_)
+    baseline = latest_run(runs_dir, label, exclude="없는-run-id")
+
+    assert path == tmp_path / "scale" / f"{label}.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    # 곡선이 읽을 것들: 콜드 로드와 모듈별 분해. 답변 전문은 커밋본과 같이 빼고 쓴다.
+    assert document["vector_store_open_ms"] == 3280.0
+    assert document["summary"]["module_ms"] == {"llm": 800.0, "run_sql": 20.0}
+    assert "적재된 리뷰는 3건입니다." not in path.read_text(encoding="utf-8")
+    # 규모 라벨이 같아도 기준선 탐색은 `evals/runs/`만 훑으므로 축약 측정이 집히지 않는다.
+    assert baseline is not None and baseline["run_id"] != meta_["run_id"]

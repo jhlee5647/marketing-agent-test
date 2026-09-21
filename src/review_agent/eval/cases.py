@@ -25,11 +25,13 @@ class Case:
     resolved: dict[str, str] = field(default_factory=dict)
 
 
-def load_cases(path: Path, db_path: Path | None = None) -> list[Case]:
+def load_cases(path: Path, db_path: Path | None = None, only: list[str] | None = None) -> list[Case]:
     """케이스 파일을 읽고, 적재 데이터가 주어지면 상품 자리표시자를 실제 값으로 렌더링한다.
 
     자리표시자는 케이스 파일의 `[placeholders]` 절에 SQL로 정의한다. `{이름}`은 그 SQL의 첫 컬럼,
     `{이름:컬럼}`은 지정한 컬럼의 값이 된다.
+
+    `only`를 주면 그 id의 케이스만 남긴다. 곡선의 중간 점에서 시간과 자원만 재는 축약 측정이 쓴다.
 
     Returns:
         파일에 적힌 순서대로의 케이스.
@@ -43,6 +45,11 @@ def load_cases(path: Path, db_path: Path | None = None) -> list[Case]:
         )
         for c in doc["cases"]
     ]
+    if only is not None:
+        unknown = sorted(set(only) - {case.id for case in cases})
+        if unknown:
+            raise ValueError(f"케이스 파일에 없는 id입니다: {unknown}")
+        cases = [case for case in cases if case.id in set(only)]
     if db_path is not None:
         values = _placeholder_values(doc.get("placeholders", {}), cases, db_path)
         for case in cases:

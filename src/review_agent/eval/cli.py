@@ -11,7 +11,7 @@ from review_agent.eval.compare import compare
 from review_agent.eval.harness import evaluate
 from review_agent.eval.instrument import TimingEmbeddings, agent_executor, cold_store_load
 from review_agent.eval.judge import openai_judge
-from review_agent.eval.report import latest_run, run_meta, save_report, save_run
+from review_agent.eval.report import latest_run, run_meta, save_report, save_run, save_scale
 from review_agent.search_tool import EMBEDDING_MODEL
 
 
@@ -21,7 +21,11 @@ def main() -> None:
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
     parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
     parser.add_argument("--runs", type=int, default=3, help="케이스 하나를 실행할 횟수")
+    parser.add_argument("--case", action="append", metavar="ID",
+                        help="이 id의 케이스만 돌린다. 여러 번 줄 수 있다. 주면 케이스 전부를 돌리는 것이 아니므로"
+                             " 평가가 아니라 축약 측정이 되어, 심판 없이 evals/scale/에 규모 라벨로 남는다")
     parser.add_argument("--runs-dir", type=Path, default=Path("evals/runs"), help="커밋하는 결과를 둘 디렉터리")
+    parser.add_argument("--scale-dir", type=Path, default=Path("evals/scale"), help="축약 측정 결과를 둘 디렉터리")
     parser.add_argument("--details-dir", type=Path, default=Path("evals/details"), help="답변 전문을 둘 디렉터리")
     parser.add_argument("--reports-dir", type=Path, default=Path("evals/reports"), help="비교 리포트를 둘 디렉터리")
     args = parser.parse_args()
@@ -39,14 +43,22 @@ def main() -> None:
     print(f"벡터 저장소 로드: {vector_store_load['vector_store_open_ms'] / 1000:.1f}s"
           " (콜드, 세션당 1회, 질문당 시간과 섞지 않는다)")
 
-    cases = load_cases(args.cases, args.db)
-    if judge_model is None and any(case.rubric for case in cases):
+    cases = load_cases(args.cases, args.db, args.case)
+    # 케이스 일부만 돌린 것은 평가가 아니다(평가 = 케이스 전부 × 정해진 횟수). 규모가 다른 점끼리는 품질을 비교하지
+    # 않으므로, 축약 측정은 심판을 부르지 않고 기준선과도 견주지 않는다. 시간과 자원만 남긴다.
+    reduced = args.case is not None
+    if not reduced and judge_model is None and any(case.rubric for case in cases):
         raise SystemExit("루브릭이 있는 케이스가 있습니다. .env에 EVAL_JUDGE_MODEL을 설정하세요.")
-    print(f"케이스 {len(cases)}개 × {args.runs}회, 모델 {model}, 심판 {judge_model}")
-    judge = openai_judge(judge_model) if judge_model else None
+    judge = None if reduced else (openai_judge(judge_model) if judge_model else None)
+    print(f"케이스 {len(cases)}개 × {args.runs}회, 모델 {model}, 심판 {'없음 (축약 측정)' if reduced else judge_model}")
     result = evaluate(cases, args.db, agent_executor(agent, embeddings), judge, args.runs)
 
-    meta = run_meta(args.db, model, judge_model, prompt_hash(SYSTEM_PROMPT), vector_store_load)
+    meta = run_meta(args.db, model, judge_model if judge else None, prompt_hash(SYSTEM_PROMPT), vector_store_load)
+    if reduced:
+        _print_summary(result, meta)
+        print(f"\n저장     {save_scale(result, args.scale_dir, meta)}  (축약 측정 — 기준선이 아니다)")
+        return
+
     baseline = latest_run(args.runs_dir, meta["scale"]["label"], meta["run_id"]) if args.runs_dir.exists() else None
     run_path, details_path = save_run(result, args.runs_dir, args.details_dir, meta)
     comparison = compare({**meta, **result}, baseline)

@@ -89,14 +89,6 @@ def save_run(result: dict, runs_dir: Path, details_dir: Path, meta: dict) -> tup
         (커밋본 경로, 상세본 경로).
     """
     run_id = meta["run_id"]
-    committed = {
-        **meta,
-        "cases": [
-            {**case, "runs": [{k: v for k, v in attempt.items() if k != "answer"} for attempt in case["runs"]]}
-            for case in result["cases"]
-        ],
-        "summary": result["summary"],
-    }
     details = {
         "run_id": run_id,
         "cases": [
@@ -104,7 +96,33 @@ def save_run(result: dict, runs_dir: Path, details_dir: Path, meta: dict) -> tup
             for case in result["cases"]
         ],
     }
-    return _write(runs_dir / f"{run_id}.json", committed), _write(details_dir / f"{run_id}.json", details)
+    return _write(runs_dir / f"{run_id}.json", _without_answers(result, meta)), _write(
+        details_dir / f"{run_id}.json", details
+    )
+
+
+def save_scale(result: dict, scale_dir: Path, meta: dict) -> Path:
+    """축약 측정 결과를 규모 라벨 이름으로 쓴다.
+
+    케이스 전부를 돌린 것이 아니므로 이것은 평가가 아니고, 따라서 기준선이 될 수 없다. `evals/runs/`가 아닌
+    자리에 두어 기준선 탐색(`latest_run`)이 집지 않게 한다. 같은 규모를 다시 재면 덮어쓴다 — 곡선의 점은 규모마다 하나다.
+
+    Returns:
+        쓴 파일의 경로.
+    """
+    return _write(scale_dir / f"{meta['scale']['label']}.json", _without_answers(result, meta))
+
+
+def _without_answers(result: dict, meta: dict) -> dict:
+    """저장소에 커밋하는 모양. 점수·궤적·소요 시간·토큰만 남기고 답변 전문은 뺀다."""
+    return {
+        **meta,
+        "cases": [
+            {**case, "runs": [{k: v for k, v in attempt.items() if k != "answer"} for attempt in case["runs"]]}
+            for case in result["cases"]
+        ],
+        "summary": result["summary"],
+    }
 
 
 def _write(path: Path, document: dict) -> Path:
