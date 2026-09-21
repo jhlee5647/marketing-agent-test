@@ -1,0 +1,258 @@
+{
+  "run_id": "skin-care-face-creams-moisturizers-all-165fb3c-7edbd4",
+  "scale": {
+    "label": "skin-care-face-creams-moisturizers-all",
+    "scope": [
+      "Skin Care",
+      "Face",
+      "Creams & Moisturizers"
+    ],
+    "top_n": null,
+    "products": 5114,
+    "reviews": 36086
+  },
+  "load_metrics": {
+    "products": 5114,
+    "reviews": 36086,
+    "top_n": null,
+    "scope": [
+      "Skin Care",
+      "Face",
+      "Creams & Moisturizers"
+    ],
+    "load_seconds": 227.84041529299793,
+    "embedding_seconds": 72.16839579600128,
+    "db_bytes": 21491712,
+    "vectors_bytes": 223626198
+  },
+  "environment": {
+    "host_label": "r7i.xlarge",
+    "total_ram_bytes": 33085460480,
+    "data_free_bytes": 65678536704
+  },
+  "model": "gpt-5.4-mini",
+  "judge_model": null,
+  "prompt_hash": "ac32c759",
+  "commit": "165fb3c",
+  "vector_store_open_ms": 1705.2866259982693,
+  "vector_store_read_ms": 706.9541529999697,
+  "vector_store_parse_ms": 998.3324729982996,
+  "vector_store_mb_per_second": 316.323480173416,
+  "vector_store_bytes": 223626198,
+  "cases": [
+    {
+      "id": "agg-total-reviews",
+      "type": "집계",
+      "turns": [
+        "적재된 리뷰는 모두 몇 건이야?"
+      ],
+      "passed": 1,
+      "total": 1,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              690.08,
+              707.342
+            ],
+            "run_sql": [
+              5.0489999999999995
+            ],
+            "total": [
+              1413.3320149994688
+            ]
+          },
+          "tokens": {
+            "input": 3186,
+            "output": 67
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "topic-stickiness",
+      "type": "주제",
+      "turns": [
+        "사람들이 끈적임에 대해 뭐라고 해?"
+      ],
+      "passed": 0,
+      "total": 1,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": null,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "심판을 부르지 않아 답변을 채점하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products LIMIT 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky sticky residue tacky greasy film",
+                "k": "10"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              778.658,
+              647.754,
+              1405.3899999999999
+            ],
+            "run_sql": [
+              0.791
+            ],
+            "search_reviews": [
+              239.533
+            ],
+            "total": [
+              3083.780867000314
+            ],
+            "embed_query": [
+              229.80227699736133
+            ]
+          },
+          "tokens": {
+            "input": 5793,
+            "output": 284
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "mix-verified-praise",
+      "type": "혼합",
+      "turns": [
+        "L'Oreal Paris Collagen Face Moisturizer, Day and Night Cream, Neck and Chest Cream to smooth skin and reduce wrinkles, 1.7 oz의 구매 인증된 5점 리뷰에서는 뭘 칭찬해?"
+      ],
+      "passed": 0,
+      "total": 1,
+      "resolved": {
+        "리뷰 수 2위 상품": "L'Oreal Paris Collagen Face Moisturizer, Day and Night Cream, Neck and Chest Cream to smooth skin and reduce wrinkles, 1.7 oz"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": null,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "심판을 부르지 않아 답변을 채점하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%L''Oreal Paris Collagen Face Moisturizer%';"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise, compliments, like, works, smooth, moisturizing, absorbs, texture, scent, wrinkles",
+                "parent_asin": "B0C46SPKJ9",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              1016.142,
+              840.426,
+              1293.373
+            ],
+            "run_sql": [
+              4.392
+            ],
+            "search_reviews": [
+              138.81
+            ],
+            "total": [
+              3304.234188999544
+            ],
+            "embed_query": [
+              129.55684899861808
+            ]
+          },
+          "tokens": {
+            "input": 5840,
+            "output": 298
+          },
+          "embedding_calls": 1
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "total": 3,
+    "by_type": {
+      "집계": {
+        "passed": 1,
+        "total": 1
+      },
+      "주제": {
+        "passed": 0,
+        "total": 1
+      },
+      "혼합": {
+        "passed": 0,
+        "total": 1
+      }
+    },
+    "question_seconds": {
+      "median": 3.083780867000314,
+      "max": 3.304234188999544
+    },
+    "question_tokens": {
+      "median": 6077,
+      "total": 15468
+    },
+    "module_ms": {
+      "llm": 7379.165000000001,
+      "run_sql": 10.232,
+      "search_reviews": 378.34299999999996,
+      "embed_query": 359.3591259959794
+    },
+    "tokens": {
+      "input": 14819,
+      "output": 649
+    },
+    "judge_tokens": {},
+    "judge_agreement": {
+      "matched": 0,
+      "of": 2
+    },
+    "embedding_calls": 2
+  }
+}

@@ -1,0 +1,2995 @@
+{
+  "run_id": "skin-care-all-515b956-2a3517",
+  "scale": {
+    "label": "skin-care-all",
+    "scope": [
+      "Skin Care"
+    ],
+    "top_n": null,
+    "products": 40215,
+    "reviews": 269114
+  },
+  "load_metrics": {
+    "products": 40215,
+    "reviews": 269114,
+    "top_n": null,
+    "scope": [
+      "Skin Care"
+    ],
+    "load_seconds": 978.1889724479988,
+    "embedding_seconds": 808.5285147610011,
+    "db_bytes": 152219648,
+    "vectors_bytes": 1667700714
+  },
+  "environment": {
+    "host_label": "r7i.xlarge",
+    "total_ram_bytes": 33085460480,
+    "data_free_bytes": 65679974400
+  },
+  "model": "gpt-5.4-mini",
+  "judge_model": "gpt-5.4",
+  "prompt_hash": "ac32c759",
+  "commit": "515b956",
+  "vector_store_open_ms": 12711.76743199976,
+  "vector_store_read_ms": 11716.880769999989,
+  "vector_store_parse_ms": 994.8866619997716,
+  "vector_store_mb_per_second": 142.33316415321016,
+  "vector_store_bytes": 1667700714,
+  "cases": [
+    {
+      "id": "agg-total-reviews",
+      "type": "집계",
+      "turns": [
+        "적재된 리뷰는 모두 몇 건이야?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              874.519,
+              684.879
+            ],
+            "run_sql": [
+              21.854
+            ],
+            "total": [
+              1593.5314839989587
+            ]
+          },
+          "tokens": {
+            "input": 3168,
+            "output": 69
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              614.759,
+              783.083
+            ],
+            "run_sql": [
+              21.907
+            ],
+            "total": [
+              1427.114268000878
+            ]
+          },
+          "tokens": {
+            "input": 3168,
+            "output": 80
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              559.181,
+              707.8389999999999
+            ],
+            "run_sql": [
+              21.708000000000002
+            ],
+            "total": [
+              1297.0965459971922
+            ]
+          },
+          "tokens": {
+            "input": 3168,
+            "output": 66
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "agg-top3-review-count",
+      "type": "집계",
+      "turns": [
+        "리뷰가 가장 많은 상품 3개와 각각의 평균 별점은?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, COUNT(*) AS review_count, ROUND(AVG(rating), 2) AS avg_rating, MIN(title) AS title\nFROM reviews\nGROUP BY parent_asin\nORDER BY review_count DESC, parent_asin\nLIMIT 3;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              782.267,
+              1285.9689999999998
+            ],
+            "run_sql": [
+              153.046
+            ],
+            "total": [
+              2229.5405400000163
+            ]
+          },
+          "tokens": {
+            "input": 3305,
+            "output": 293
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, COUNT(*) AS review_count, ROUND(AVG(rating), 3) AS avg_rating\nFROM reviews\nGROUP BY parent_asin\nORDER BY review_count DESC, parent_asin\nLIMIT 3;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              1249.689,
+              1181.2450000000001
+            ],
+            "run_sql": [
+              121.545
+            ],
+            "total": [
+              2560.187227001734
+            ]
+          },
+          "tokens": {
+            "input": 3277,
+            "output": 312
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, COUNT(*) AS review_count, ROUND(AVG(rating), 3) AS avg_rating\nFROM reviews\nGROUP BY parent_asin\nORDER BY review_count DESC, parent_asin ASC\nLIMIT 3;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              691.495,
+              1145.571
+            ],
+            "run_sql": [
+              122.424
+            ],
+            "total": [
+              1967.2832469987043
+            ]
+          },
+          "tokens": {
+            "input": 3278,
+            "output": 279
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "agg-rating-distribution",
+      "type": "집계",
+      "turns": [
+        "별점별로 리뷰가 몇 건씩 있어?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT rating, COUNT(*) AS review_count FROM reviews GROUP BY rating ORDER BY rating;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              693.233,
+              948.295
+            ],
+            "run_sql": [
+              87.159
+            ],
+            "total": [
+              1736.1081189992547
+            ]
+          },
+          "tokens": {
+            "input": 3220,
+            "output": 179
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT rating, COUNT(*) AS review_count\nFROM reviews\nGROUP BY rating\nORDER BY rating;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              746.259,
+              774.015
+            ],
+            "run_sql": [
+              86.223
+            ],
+            "total": [
+              1614.1890969993256
+            ]
+          },
+          "tokens": {
+            "input": 3223,
+            "output": 132
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT rating, COUNT(*) AS review_count\nFROM reviews\nGROUP BY rating\nORDER BY rating;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              619.8050000000001,
+              1121.518
+            ],
+            "run_sql": [
+              87.85900000000001
+            ],
+            "total": [
+              1836.6252300002088
+            ]
+          },
+          "tokens": {
+            "input": 3223,
+            "output": 195
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "topic-stickiness",
+      "type": "주제",
+      "turns": [
+        "사람들이 끈적임에 대해 뭐라고 해?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 807,
+            "output": 75
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%sticky%' OR title LIKE '%tacky%' OR title LIKE '%residue%' OR title LIKE '%greasy%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky sticky residue tacky greasy film",
+                "parent_asin": "B0C5YV5DPW",
+                "k": 5
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky residue tacky greasy film",
+                "parent_asin": "B0B3PHXRY6",
+                "k": 5
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky residue tacky greasy film",
+                "parent_asin": "B0BQZ6NKPW",
+                "k": 5
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS total_reviews,\nSUM(CASE WHEN LOWER(text) LIKE '%stick%' OR LOWER(text) LIKE '%sticky%' OR LOWER(text) LIKE '%tacky%' OR LOWER(text) LIKE '%residue%' OR LOWER(text) LIKE '%greasy%' THEN 1 ELSE 0 END) AS mentions,\nSUM(CASE WHEN LOWER(text) LIKE '%sticky%' OR LOWER(text) LIKE '%tacky%' THEN 1 ELSE 0 END) AS sticky_mentions\nFROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              719.366,
+              977.81,
+              956.855,
+              1728.971
+            ],
+            "run_sql": [
+              1.851,
+              638.8629999999999
+            ],
+            "search_reviews": [
+              582.43,
+              659.956,
+              660.38
+            ],
+            "total": [
+              5704.688890000398
+            ],
+            "embed_query": [
+              467.0441359994584,
+              473.34474500166834,
+              476.7189390004205
+            ]
+          },
+          "tokens": {
+            "input": 10977,
+            "output": 624
+          },
+          "embedding_calls": 3
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 664,
+            "output": 67
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky residue greasy film leaves a film",
+                "k": 5
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              684.952,
+              1266.779
+            ],
+            "search_reviews": [
+              213.221
+            ],
+            "total": [
+              2172.419020000234
+            ],
+            "embed_query": [
+              145.0769519979076
+            ]
+          },
+          "tokens": {
+            "input": 3401,
+            "output": 208
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 699,
+            "output": 77
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%stick%' OR title LIKE '%sticky%' OR title LIKE '%tacky%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt, AVG(rating) AS avg_rating FROM reviews WHERE parent_asin='B0C5YV5DPW' AND (text LIKE '%sticky%' OR text LIKE '%stickiness%' OR text LIKE '%tacky%' OR text LIKE '%greasy%');"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky greasy residue film",
+                "parent_asin": "B0C5YV5DPW",
+                "k": 5
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "non sticky absorbs well",
+                "parent_asin": "B0C5YV5DPW",
+                "k": 5
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              635.368,
+              1059.652,
+              1699.2659999999998
+            ],
+            "run_sql": [
+              1.6789999999999998,
+              83.084
+            ],
+            "search_reviews": [
+              262.173,
+              341.708
+            ],
+            "total": [
+              3752.9084279995004
+            ],
+            "embed_query": [
+              124.07342599908588,
+              201.21550700059743
+            ]
+          },
+          "tokens": {
+            "input": 7045,
+            "output": 427
+          },
+          "embedding_calls": 2
+        }
+      ]
+    },
+    {
+      "id": "topic-irritation",
+      "type": "주제",
+      "turns": [
+        "피부 트러블이나 자극이 생겼다는 리뷰가 있어? 어떤 내용이야?"
+      ],
+      "passed": 1,
+      "total": 3,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": false,
+          "trajectory_ok": false,
+          "evidence_ok": true,
+          "fail_reason": "피부 트러블·자극을 겪었다는 리뷰 3건 이상 제시가 없고, 제시된 예시는 대부분 ‘자극 없다’는 내용이라 질문 취지와 루브릭 1을 충족하지 못했다.",
+          "judge_tokens": {
+            "input": 883,
+            "output": 69
+          },
+          "judge_passed": false,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT review_id, rating, title, text, parent_asin FROM reviews WHERE reviewed_at LIKE '2023%' AND (text LIKE '%rash%' OR text LIKE '%irritation%' OR text LIKE '%itch%' OR text LIKE '%burn%' OR text LIKE '%break out%' OR text LIKE '%breakout%' OR text LIKE '%acne%' OR text LIKE '%red%' OR text LIKE '%sensitive%' OR text LIKE '%dry%' OR text LIKE '%stinging%' OR text LIKE '%hives%') LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE reviewed_at LIKE '2023%' AND (LOWER(text) LIKE '%rash%' OR LOWER(text) LIKE '%irritation%' OR LOWER(text) LIKE '%itch%' OR LOWER(text) LIKE '%burn%' OR LOWER(text) LIKE '%break out%' OR LOWER(text) LIKE '%breakout%' OR LOWER(text) LIKE '%acne%' OR LOWER(text) LIKE '%red%' OR LOWER(text) LIKE '%sensitive%' OR LOWER(text) LIKE '%dry%' OR LOWER(text) LIKE '%stinging%' OR LOWER(text) LIKE '%hives%');"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              938.661,
+              922.7189999999999,
+              2215.369
+            ],
+            "run_sql": [
+              1.021,
+              915.655
+            ],
+            "total": [
+              5004.576854000334
+            ]
+          },
+          "tokens": {
+            "input": 10186,
+            "output": 643
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": false,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "review_id와 영어 인용으로 3건 이상 제시는 충족했지만, 반복 표현 2가지 이상을 명시적으로 요약하지 않았고 진정·완화 사례까지 섞어 질문 범위를 흐렸다.",
+          "judge_tokens": {
+            "input": 881,
+            "output": 64
+          },
+          "judge_passed": false,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%skin%' OR title LIKE '%acne%' OR title LIKE '%blemish%' OR title LIKE '%irrit%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation rash break out redness stinging burning itching allergic reaction",
+                "parent_asin": "B07HS43JZP",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation rash break out redness stinging burning itching allergic reaction",
+                "parent_asin": "B0BS1ZZWK2",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation rash break out redness stinging burning itching allergic reaction",
+                "parent_asin": "B00SD8IKCQ",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation rash break out redness stinging burning itching allergic reaction",
+                "parent_asin": "B0B6NBDKVJ",
+                "k": 10
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS total_reviews,\nSUM(CASE WHEN lower(title) LIKE '%break out%' OR lower(text) LIKE '%break out%' OR lower(title) LIKE '%irrit%' OR lower(text) LIKE '%irrit%' OR lower(title) LIKE '%burn%' OR lower(text) LIKE '%burn%' OR lower(title) LIKE '%rash%' OR lower(text) LIKE '%rash%' OR lower(title) LIKE '%itch%' OR lower(text) LIKE '%itch%' OR lower(title) LIKE '%allerg%' OR lower(text) LIKE '%allerg%' OR lower(title) LIKE '%redness%' OR lower(text) LIKE '%redness%' THEN 1 ELSE 0 END) AS possible_skin_issue_reviews\nFROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              736.891,
+              1173.4640000000002,
+              1087.281,
+              2060.5099999999998
+            ],
+            "run_sql": [
+              0.777,
+              858.5319999999999
+            ],
+            "search_reviews": [
+              433.127,
+              434.711,
+              298.32599999999996,
+              432.028
+            ],
+            "total": [
+              6371.46099399979
+            ],
+            "embed_query": [
+              145.67800000077114,
+              151.49883499907446,
+              155.88516700154287,
+              155.4252930000075
+            ]
+          },
+          "tokens": {
+            "input": 14911,
+            "output": 783
+          },
+          "embedding_calls": 4
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 863,
+            "output": 77
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%skin%' OR title LIKE '%acne%' OR title LIKE '%blemish%' OR title LIKE '%anti%acne%' LIMIT 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "skin irritation break out rash redness stinging burning itching reaction",
+                "k": 10
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE review_id IN (77819,240362,105662,128817,147477,63167,62574,199627,12382,166845);"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              840.124,
+              622.514,
+              735.444,
+              1686.986
+            ],
+            "run_sql": [
+              0.769,
+              0.758
+            ],
+            "search_reviews": [
+              217.521
+            ],
+            "total": [
+              4119.570879000094
+            ],
+            "embed_query": [
+              152.97072699831915
+            ]
+          },
+          "tokens": {
+            "input": 8934,
+            "output": 508
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "topic-scent",
+      "type": "주제",
+      "turns": [
+        "향에 대해서는 어떤 말이 나와?"
+      ],
+      "passed": 1,
+      "total": 3,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": false,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "향 언급 리뷰는 review_id와 영어 인용이 2건만 제시됐고, 반복 표현도 2가지 이상으로 요약되지 않았다.",
+          "judge_tokens": {
+            "input": 658,
+            "output": 49
+          },
+          "judge_passed": false,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%향%' OR title LIKE '%fragrance%' OR title LIKE '%scent%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT review_id, rating, title, text FROM reviews WHERE parent_asin='B01ALT5MKW' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "fragrance scent smell odor perfume unscented",
+                "parent_asin": "B01ALT5MKW",
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              670.2439999999999,
+              878.958,
+              1393.279
+            ],
+            "run_sql": [
+              0.848,
+              31.784
+            ],
+            "search_reviews": [
+              244.305
+            ],
+            "total": [
+              3200.8257020024757
+            ],
+            "embed_query": [
+              184.17411600239575
+            ]
+          },
+          "tokens": {
+            "input": 8462,
+            "output": 342
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": false,
+          "evidence_ok": true,
+          "fail_reason": "기대한 호출이 없거나 순서가 어긋났다: {'tool': 'search_reviews'}",
+          "judge_tokens": {
+            "input": 729,
+            "output": 72
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%fragrance%' OR title LIKE '%scent%' OR title LIKE '%perfume%' OR title LIKE '%smell%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT review_id, rating, title, text, verified_purchase FROM reviews WHERE parent_asin IN ('B01ALT5MKW','B07HS43JZP','B0BS1ZZWK2','B0C7FMT6LC','B0817YHPZ6','B09W4TYFS4','B008ECZFZQ','B0BY2W3B85','B09PMVN6MN','B084XP7KK8','B0962R1N3X','B097GSRLKJ','B0013Y53C2','B07X1VDZ73','B0BZ2DWNJH','B07K1PLVGG','B0771VKYW5','B07DXH3DRT','B0B48TQDMG') AND (text LIKE '%scent%' OR text LIKE '%fragrance%' OR text LIKE '%smell%' OR text LIKE '%odor%' OR text LIKE '%perfume%') LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              806.5250000000001,
+              1196.629,
+              1643.9250000000002
+            ],
+            "run_sql": [
+              0.985,
+              2.944
+            ],
+            "total": [
+              3662.4679990018194
+            ]
+          },
+          "tokens": {
+            "input": 9166,
+            "output": 551
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 707,
+            "output": 71
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%香%' OR title LIKE '%scent%' OR title LIKE '%fragrance%' OR title LIKE '%smell%' OR title LIKE '%perfume%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%fragrance%' OR title LIKE '%scent%' OR title LIKE '%unscented%' OR title LIKE '%fragrance-free%' OR title LIKE '%scent-free%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "scent fragrance smell unscented fragrance-free perfumed",
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              755.505,
+              888.626,
+              1310.171
+            ],
+            "run_sql": [
+              0.912,
+              1.2
+            ],
+            "search_reviews": [
+              200.317
+            ],
+            "total": [
+              3169.2016090019024
+            ],
+            "embed_query": [
+              134.48313099797815
+            ]
+          },
+          "tokens": {
+            "input": 7476,
+            "output": 419
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "mix-low-rating-complaints",
+      "type": "혼합",
+      "turns": [
+        "Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack - Pine Tar, Wood Barrel Bourbon, Birchwood Breeze, Spearmint Basil, and Eucalyptus Greek Yogurt의 1~2점 리뷰에서 가장 많이 나오는 불만은?"
+      ],
+      "passed": 2,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 1위 상품": "Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack - Pine Tar, Wood Barrel Bourbon, Birchwood Breeze, Spearmint Basil, and Eucalyptus Greek Yogurt"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 854,
+            "output": 68
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack%' OR title LIKE '%Dr. Squatch%' AND title LIKE '%5 Bar Variety Pack%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE parent_asin = 'B0BYBCFHTB' AND rating BETWEEN 1 AND 2;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "complaint issue problem broken low quality dry harsh smell residue irritation rash leaking unpleasant scent lather",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              698.057,
+              1048.6789999999999,
+              1740.4109999999998
+            ],
+            "run_sql": [
+              23.965,
+              33.527
+            ],
+            "search_reviews": [
+              199.745
+            ],
+            "total": [
+              3723.943266999413
+            ],
+            "embed_query": [
+              137.9977609976777
+            ]
+          },
+          "tokens": {
+            "input": 6108,
+            "output": 507
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": false,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "반복 불만 두 가지 이상, review_id와 영어 인용, 1~2점 리뷰 수치(251건)는 있으나 검색 결과 빈도를 전체 리뷰 빈도처럼 단정하지 말아야 하는데 '가장 많이 나오는 불만'과 구체 건수로 단정했다.",
+          "judge_tokens": {
+            "input": 889,
+            "output": 80
+          },
+          "judge_passed": false,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch%' AND title LIKE '%All Natural Bar Soap for Men%' AND title LIKE '%5 Bar Variety Pack%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "complaint issue problem dislike broken smell dries out irritated rash residue crumbly falls apart low quality",
+                "parent_asin": "B0BYBCFHTB",
+                "max_rating": 2,
+                "k": 20
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS total_1_2_reviews,\n       SUM(CASE WHEN lower(text) LIKE '%crumbl%' OR lower(text) LIKE '%fall apart%' OR lower(text) LIKE '%break apart%' OR lower(text) LIKE '%dissolv%' OR lower(text) LIKE '%melt%' OR lower(text) LIKE '%crumb%' OR lower(text) LIKE '%breaks%' THEN 1 ELSE 0 END) AS structure_breakdown,\n       SUM(CASE WHEN lower(text) LIKE '%dry%' THEN 1 ELSE 0 END) AS dryness,\n       SUM(CASE WHEN lower(text) LIKE '%smell%' OR lower(text) LIKE '%scent%' OR lower(text) LIKE '%odor%' OR lower(text) LIKE '%fragr%' THEN 1 ELSE 0 END) AS scent,\n       SUM(CASE WHEN lower(text) LIKE '%price%' OR lower(text) LIKE '%expens%' OR lower(text) LIKE '%overly price%' THEN 1 ELSE 0 END) AS price\nFROM reviews\nWHERE parent_asin = 'B0BYBCFHTB' AND rating BETWEEN 1 AND 2;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              774.648,
+              890.9599999999999,
+              1456.8220000000001,
+              2071.0280000000002
+            ],
+            "run_sql": [
+              19.985,
+              32.333
+            ],
+            "search_reviews": [
+              183.188
+            ],
+            "total": [
+              5444.785755000339
+            ],
+            "embed_query": [
+              122.22485000165761
+            ]
+          },
+          "tokens": {
+            "input": 11284,
+            "output": 720
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 845,
+            "output": 66
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch%' AND title LIKE '%5 Bar Variety Pack%' AND title LIKE '%Pine Tar%' AND title LIKE '%Wood Barrel Bourbon%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count, AVG(rating) AS avg_rating FROM reviews WHERE parent_asin = 'B0BYBCFHTB' AND rating IN (1,2);"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "complaint problem issue negative 1 star 2 star smell dryness irritation rash residue cracking crumble overpriced",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              821.689,
+              992.684,
+              1796.977
+            ],
+            "run_sql": [
+              19.073,
+              31.287000000000003
+            ],
+            "search_reviews": [
+              476.539
+            ],
+            "total": [
+              4121.095575999789
+            ],
+            "embed_query": [
+              415.89868200026103
+            ]
+          },
+          "tokens": {
+            "input": 6165,
+            "output": 499
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "mix-verified-praise",
+      "type": "혼합",
+      "turns": [
+        "WHOLENATURALS Pure Castile Soap Liquid, EWG Verified & Certified Palm Oil Free - 64 Oz. - 1/2 Gallon Unscented, Natural Soap, Mild & Gentle Non-gmo & Vegan - Organic Body Wash, Laundry, and Baby Soap의 구매 인증된 5점 리뷰에서는 뭘 칭찬해?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 2위 상품": "WHOLENATURALS Pure Castile Soap Liquid, EWG Verified & Certified Palm Oil Free - 64 Oz. - 1/2 Gallon Unscented, Natural Soap, Mild & Gentle Non-gmo & Vegan - Organic Body Wash, Laundry, and Baby Soap"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 872,
+            "output": 51
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%WHOLENATURALS Pure Castile Soap Liquid%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise, compliment, like, love, good, great, gentle, mild, unscented, clean, moisturizing, versatile, value",
+                "parent_asin": "B0BRJH1WL4",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              667.791,
+              1131.189,
+              1951.106
+            ],
+            "run_sql": [
+              18.153
+            ],
+            "search_reviews": [
+              211.699
+            ],
+            "total": [
+              3992.4476859996503
+            ],
+            "embed_query": [
+              150.43661399977282
+            ]
+          },
+          "tokens": {
+            "input": 5998,
+            "output": 475
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 940,
+            "output": 47
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%WHOLENATURALS Pure Castile Soap Liquid%' OR title LIKE '%Pure Castile Soap Liquid%' OR title LIKE '%WHOLENATURALS%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise gentle mild versatile unscented moisturizing lather cleansing baby laundry",
+                "parent_asin": "B0BRJH1WL4",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS verified_5star_reviews FROM reviews WHERE parent_asin='B0BRJH1WL4' AND rating=5 AND verified_purchase=1;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              750.571,
+              830.1460000000001,
+              797.439,
+              2257.511
+            ],
+            "run_sql": [
+              25.27,
+              31.112000000000002
+            ],
+            "search_reviews": [
+              200.657
+            ],
+            "total": [
+              4908.303063999483
+            ],
+            "embed_query": [
+              139.72380500126746
+            ]
+          },
+          "tokens": {
+            "input": 9408,
+            "output": 606
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 785,
+            "output": 79
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%WHOLENATURALS Pure Castile Soap Liquid%' OR title LIKE '%WHOLENATURALS%' OR title LIKE '%Pure Castile Soap Liquid%'"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise gentle mild unscented moisturizing lather clean baby sensitive skin",
+                "parent_asin": "B0BRJH1WL4",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              685.7330000000001,
+              994.152,
+              1521.271
+            ],
+            "run_sql": [
+              24.822
+            ],
+            "search_reviews": [
+              208.434
+            ],
+            "total": [
+              3445.570043000771
+            ],
+            "embed_query": [
+              147.61062400066294
+            ]
+          },
+          "tokens": {
+            "input": 6416,
+            "output": 396
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "mix-low-rating-count",
+      "type": "혼합",
+      "turns": [
+        "Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack - Pine Tar, Wood Barrel Bourbon, Birchwood Breeze, Spearmint Basil, and Eucalyptus Greek Yogurt의 1~2점 리뷰는 몇 건이고, 그 리뷰들은 주로 뭘 문제 삼아?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 1위 상품": "Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack - Pine Tar, Wood Barrel Bourbon, Birchwood Breeze, Spearmint Basil, and Eucalyptus Greek Yogurt"
+      },
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack%' OR title LIKE '%Dr. Squatch%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS count_1_2 FROM reviews WHERE parent_asin = 'B0BYBCFHTB' AND rating BETWEEN 1 AND 2;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "problems, complaints, issues, low rating, one star, two star, disappointed, bad smell, harsh, dry skin, residue, no scent, shipping",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              850.9290000000001,
+              1056.0179999999998,
+              1616.71
+            ],
+            "run_sql": [
+              13.854999999999999,
+              31.214
+            ],
+            "search_reviews": [
+              182.64
+            ],
+            "total": [
+              3733.7608950001595
+            ],
+            "embed_query": [
+              121.61038300109794
+            ]
+          },
+          "tokens": {
+            "input": 7110,
+            "output": 517
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack%';"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE parent_asin = 'B0BYBCFHTB' AND rating BETWEEN 1 AND 2;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "problems complaint issue bad smell dries out irritation cracks rash residue bar falls apart lathers poorly",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              693.0169999999999,
+              1131.47,
+              2396.921
+            ],
+            "run_sql": [
+              19.33,
+              30.927
+            ],
+            "search_reviews": [
+              229.3
+            ],
+            "total": [
+              4484.258341002715
+            ],
+            "embed_query": [
+              168.10525999972015
+            ]
+          },
+          "tokens": {
+            "input": 6115,
+            "output": 583
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch%' AND title LIKE '%All Natural Bar Soap for Men%' AND title LIKE '%Variety Pack%';"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE parent_asin = 'B0BYBCFHTB' AND rating BETWEEN 1 AND 2;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "problem issue complaint dislike broken smell dry residue irritation lather last",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 1,
+                "max_rating": 2,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              720.4770000000001,
+              984.716,
+              1630.076
+            ],
+            "run_sql": [
+              19.041,
+              31.688000000000002
+            ],
+            "search_reviews": [
+              200.87
+            ],
+            "total": [
+              3569.425716999831
+            ],
+            "embed_query": [
+              139.26354999784962
+            ]
+          },
+          "tokens": {
+            "input": 5971,
+            "output": 448
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "followup-five-star-praise",
+      "type": "후속",
+      "turns": [
+        "Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack - Pine Tar, Wood Barrel Bourbon, Birchwood Breeze, Spearmint Basil, and Eucalyptus Greek Yogurt의 1~2점 리뷰에서 가장 많이 나오는 불만은?",
+        "그럼 5점 리뷰에서는 뭘 칭찬해?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 1위 상품": "Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack - Pine Tar, Wood Barrel Bourbon, Birchwood Breeze, Spearmint Basil, and Eucalyptus Greek Yogurt"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 770,
+            "output": 53
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews WHERE parent_asin = 'B0BYBCFHTB' AND rating = 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise compliment love great amazing excellent scent smell lather moisturizing clean lasting quality skin",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              717.769,
+              1077.047,
+              1401.128,
+              872.893,
+              1586.759
+            ],
+            "run_sql": [
+              23.949,
+              30.734,
+              30.782
+            ],
+            "search_reviews": [
+              176.42,
+              212.577
+            ],
+            "total": [
+              3409.7281089998432,
+              2683.0436870004633
+            ],
+            "embed_query": [
+              115.37602099997457,
+              151.8932839971967
+            ]
+          },
+          "tokens": {
+            "input": 13890,
+            "output": 822
+          },
+          "embedding_calls": 2
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 861,
+            "output": 69
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE parent_asin='B0BYBCFHTB' AND rating = 5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise love great smell scent fragrance lasts long lather moisturizing quality skin natural",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "love this soap amazing bar best soap lather cleans well moisturizes",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "smell great scent good fragrance masculine",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT \n  SUM(CASE WHEN lower(text) LIKE '%smell%' OR lower(text) LIKE '%scent%' OR lower(text) LIKE '%fragr%' OR lower(text) LIKE '%odor%' THEN 1 ELSE 0 END) AS scent_cnt,\n  SUM(CASE WHEN lower(text) LIKE '%last%' OR lower(text) LIKE '%long lasting%' OR lower(text) LIKE '%longevity%' THEN 1 ELSE 0 END) AS last_cnt,\n  SUM(CASE WHEN lower(text) LIKE '%lather%' THEN 1 ELSE 0 END) AS lather_cnt,\n  SUM(CASE WHEN lower(text) LIKE '%skin%' AND (lower(text) LIKE '%soft%' OR lower(text) LIKE '%smooth%' OR lower(text) LIKE '%feel%') THEN 1 ELSE 0 END) AS skinfeel_cnt,\n  SUM(CASE WHEN lower(text) LIKE '%clean%' OR lower(text) LIKE '%fresh%' THEN 1 ELSE 0 END) AS cleanfresh_cnt,\n  COUNT(*) AS total_cnt\nFROM reviews\nWHERE parent_asin='B0BYBCFHTB' AND rating = 5;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              640.957,
+              1593.2079999999999,
+              1428.093,
+              2016.231,
+              1342.177,
+              1450.2079999999999,
+              1834.695
+            ],
+            "run_sql": [
+              19.508000000000003,
+              33.677,
+              32.251000000000005,
+              33.518,
+              32.541000000000004
+            ],
+            "search_reviews": [
+              420.39700000000005,
+              452.386,
+              451.512,
+              408.293,
+              362.398,
+              302.539,
+              359.35699999999997
+            ],
+            "total": [
+              6204.349455001648,
+              5038.402734000556
+            ],
+            "embed_query": [
+              147.78729599856888,
+              164.9964659991383,
+              165.77936000248883,
+              168.15956299979007,
+              138.27766900067218,
+              153.53493799921125,
+              163.73839300285908
+            ]
+          },
+          "tokens": {
+            "input": 35315,
+            "output": 1791
+          },
+          "embedding_calls": 7
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 812,
+            "output": 55
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS five_star_count FROM reviews WHERE parent_asin='B0BYBCFHTB' AND rating=5;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise compliment love scent smell lather moisturizing long lasting quality great gift exfoliating clean fresh",
+                "parent_asin": "B0BYBCFHTB",
+                "min_rating": 5,
+                "max_rating": 5,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              743.527,
+              1766.443,
+              1564.097,
+              995.343,
+              1964.431
+            ],
+            "run_sql": [
+              24.139,
+              33.632000000000005,
+              33.34
+            ],
+            "search_reviews": [
+              215.541,
+              192.018
+            ],
+            "total": [
+              4327.769286999683,
+              3162.4860930023715
+            ],
+            "embed_query": [
+              154.06996099773096,
+              129.73681000221404
+            ]
+          },
+          "tokens": {
+            "input": 16692,
+            "output": 963
+          },
+          "embedding_calls": 2
+        }
+      ]
+    },
+    {
+      "id": "followup-second-product-rating",
+      "type": "후속",
+      "turns": [
+        "리뷰가 가장 많은 상품 3개를 알려 줘.",
+        "그 중 두 번째 상품의 평균 별점은?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT p.parent_asin, p.title, AVG(r.rating) AS avg_rating, COUNT(*) AS review_count\nFROM reviews r\nJOIN products p ON p.parent_asin = r.parent_asin\nWHERE p.parent_asin = 'B0BRJH1WL4'\nGROUP BY p.parent_asin, p.title;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              799.366,
+              1337.612,
+              773.929,
+              1097.803
+            ],
+            "run_sql": [
+              582.6569999999999,
+              33.077000000000005
+            ],
+            "total": [
+              2727.334316998167,
+              1912.6764470020134
+            ]
+          },
+          "tokens": {
+            "input": 7893,
+            "output": 493
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title, COUNT(*) AS review_count, AVG(rating) AS avg_rating\nFROM reviews\nWHERE parent_asin = 'B0BRJH1WL4'\nGROUP BY parent_asin, title;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count\nFROM reviews\nWHERE parent_asin = 'B0BRJH1WL4';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              741.598,
+              973.904,
+              732.7510000000001,
+              713.252,
+              1076.228
+            ],
+            "run_sql": [
+              129.956,
+              31.551000000000002,
+              31.685
+            ],
+            "total": [
+              1853.039986002841,
+              2596.7715569968277
+            ]
+          },
+          "tokens": {
+            "input": 11688,
+            "output": 429
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT title FROM products WHERE parent_asin = 'B0BRJH1WL4';"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count\nFROM reviews\nWHERE parent_asin = 'B0BRJH1WL4';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              915.4870000000001,
+              1098.9850000000001,
+              664.423,
+              720.336,
+              1008.1500000000001
+            ],
+            "run_sql": [
+              110.466,
+              0.7010000000000001,
+              31.25
+            ],
+            "total": [
+              2133.078710998234,
+              2436.2688649998745
+            ]
+          },
+          "tokens": {
+            "input": 9235,
+            "output": 470
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "followup-narrow-to-low-ratings",
+      "type": "후속",
+      "turns": [
+        "사람들이 흡수력에 대해 뭐라고 해?",
+        "그럼 3점 이하 리뷰에서만 보면 어때?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 663,
+            "output": 70
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorb quickly greasy sticky lightweight soak in residue",
+                "parent_asin": "B07GSKXT6M",
+                "max_rating": 3,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorb quickly greasy sticky lightweight soak in residue",
+                "parent_asin": "B0B3PHXRY6",
+                "max_rating": 3,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorb quickly greasy sticky lightweight soak in residue",
+                "parent_asin": "B097GSRLKJ",
+                "max_rating": 3,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              671.8499999999999,
+              1227.115,
+              1006.8220000000001,
+              954.398,
+              1289.584
+            ],
+            "run_sql": [
+              1.758
+            ],
+            "search_reviews": [
+              351.509,
+              349.775,
+              357.999,
+              367.315,
+              363.497,
+              361.694
+            ],
+            "total": [
+              3282.0203359988227,
+              2621.7504080013896
+            ],
+            "embed_query": [
+              143.87694999822997,
+              155.2161369982059,
+              164.45556599865085,
+              123.79056300051161,
+              138.44101499853423,
+              154.31160099979024
+            ]
+          },
+          "tokens": {
+            "input": 14106,
+            "output": 652
+          },
+          "embedding_calls": 6
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 621,
+            "output": 68
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorb quickly fast absorbing leaves skin on top sticky greasy residue",
+                "parent_asin": "B0BTJ4JFXL",
+                "max_rating": 3,
+                "k": 10
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE parent_asin='B0BTJ4JFXL' AND rating <= 3 AND (LOWER(title) LIKE '%absorb%' OR LOWER(text) LIKE '%absorb%' OR LOWER(title) LIKE '%sticky%' OR LOWER(text) LIKE '%sticky%' OR LOWER(title) LIKE '%greasy%' OR LOWER(text) LIKE '%greasy%' OR LOWER(title) LIKE '%residue%' OR LOWER(text) LIKE '%residue%' OR LOWER(title) LIKE '%top of my skin%' OR LOWER(text) LIKE '%top of my skin%');"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              778.0970000000001,
+              1088.733,
+              1527.708,
+              1392.709,
+              1070.964
+            ],
+            "run_sql": [
+              1.0839999999999999,
+              34.324,
+              31.668000000000003
+            ],
+            "search_reviews": [
+              209.534,
+              245.325
+            ],
+            "total": [
+              3618.4270699995977,
+              2717.5323510018643
+            ],
+            "embed_query": [
+              147.6911880017724,
+              181.96006199650583
+            ]
+          },
+          "tokens": {
+            "input": 16674,
+            "output": 788
+          },
+          "embedding_calls": 2
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {
+            "input": 729,
+            "output": 56
+          },
+          "judge_passed": true,
+          "trajectory": [
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "absorbency absorption absorbs quickly fast absorbing non-greasy sticky greasy residue",
+                "min_rating": 1,
+                "max_rating": 3,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "soak in absorb soak absorbed absorption",
+                "min_rating": 1,
+                "max_rating": 3,
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky greasy residue heavy thick absorbs",
+                "min_rating": 1,
+                "max_rating": 3,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              708.945,
+              970.9069999999999,
+              1380.3790000000001,
+              1102.9150000000002,
+              1482.482
+            ],
+            "run_sql": [
+              3.22
+            ],
+            "search_reviews": [
+              270.66200000000003,
+              376.779,
+              374.828,
+              371.78099999999995,
+              220.555,
+              365.685
+            ],
+            "total": [
+              3454.1193389995897,
+              2967.0797120015777
+            ],
+            "embed_query": [
+              150.97293800135958,
+              154.06776699819602,
+              183.72876600187737,
+              137.32674000129919,
+              155.11348400104907,
+              155.22115800195024
+            ]
+          },
+          "tokens": {
+            "input": 17892,
+            "output": 771
+          },
+          "embedding_calls": 6
+        }
+      ]
+    },
+    {
+      "id": "refuse-korea-sales",
+      "type": "거절",
+      "turns": [
+        "Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack - Pine Tar, Wood Barrel Bourbon, Birchwood Breeze, Spearmint Basil, and Eucalyptus Greek Yogurt의 한국 매출은 얼마야?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {
+        "리뷰 수 1위 상품": "Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack - Pine Tar, Wood Barrel Bourbon, Birchwood Breeze, Spearmint Basil, and Eucalyptus Greek Yogurt"
+      },
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack%';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              1038.502,
+              1147.931
+            ],
+            "run_sql": [
+              19.448
+            ],
+            "total": [
+              2212.677909999911
+            ]
+          },
+          "tokens": {
+            "input": 3312,
+            "output": 231
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch All Natural Bar Soap for Men, 5 Bar Variety Pack%' OR title LIKE '%Dr. Squatch%' ORDER BY title LIMIT 10;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              696.655,
+              1091.0249999999999
+            ],
+            "run_sql": [
+              24.037
+            ],
+            "total": [
+              1819.6833420006442
+            ]
+          },
+          "tokens": {
+            "input": 3651,
+            "output": 223
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Dr. Squatch All Natural Bar Soap for Men%' OR title LIKE '%Dr. Squatch%' ORDER BY title LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count, AVG(rating) AS avg_rating, MIN(reviewed_at) AS first_review_at, MAX(reviewed_at) AS last_review_at FROM reviews WHERE parent_asin = 'B0BYBCFHTB';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              748.738,
+              843.283,
+              1332.277
+            ],
+            "run_sql": [
+              24.052,
+              31.364000000000004
+            ],
+            "total": [
+              2991.175347000535
+            ]
+          },
+          "tokens": {
+            "input": 6765,
+            "output": 364
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "refuse-reviewer-age",
+      "type": "거절",
+      "turns": [
+        "리뷰를 쓴 사람들의 나이대 분포가 어떻게 돼?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              640.558,
+              1050.916
+            ],
+            "run_sql": [
+              21.189
+            ],
+            "total": [
+              1721.0870349990728
+            ]
+          },
+          "tokens": {
+            "input": 3180,
+            "output": 146
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              706.134,
+              1004.421
+            ],
+            "run_sql": [
+              21.177999999999997
+            ],
+            "total": [
+              1739.0963699981512
+            ]
+          },
+          "tokens": {
+            "input": 3180,
+            "output": 173
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT '적재 데이터에는 리뷰어의 나이(age) 정보가 없습니다' AS note;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              702.1619999999999,
+              1030.1149999999998
+            ],
+            "run_sql": [
+              0.718
+            ],
+            "total": [
+              1740.018065996992
+            ]
+          },
+          "tokens": {
+            "input": 3203,
+            "output": 138
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "refuse-offline-sales",
+      "type": "거절",
+      "turns": [
+        "이 상품들이 오프라인 매장에서 몇 개나 팔렸어?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [],
+          "timings_ms": {
+            "llm": [
+              900.265
+            ],
+            "total": [
+              904.294583000592
+            ]
+          },
+          "tokens": {
+            "input": 1560,
+            "output": 90
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [],
+          "timings_ms": {
+            "llm": [
+              811.736
+            ],
+            "total": [
+              815.2907229996345
+            ]
+          },
+          "tokens": {
+            "input": 1560,
+            "output": 57
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [],
+          "timings_ms": {
+            "llm": [
+              857.621
+            ],
+            "total": [
+              861.6670480005268
+            ]
+          },
+          "tokens": {
+            "input": 1560,
+            "output": 95
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "scope-hair-shampoo",
+      "type": "범위 밖",
+      "turns": [
+        "니옥신 탈모 샴푸 리뷰에서는 두피 개선 평가가 어때?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' OR title LIKE '%니옥신%' OR title LIKE '%hair loss shampoo%' OR title LIKE '%shampoo%' AND title LIKE '%Nioxin%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' LIMIT 50;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Scalp%' AND (title LIKE '%shampoo%' OR title LIKE '%Shampoo%') LIMIT 50;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "scalp improvement, scalp feels better, less itchy, healthier scalp, dandruff reduced",
+                "parent_asin": "B07L4V1P2S",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "scalp, itch, dandruff, dry scalp, healthy scalp, scalp feels, scalp improvement",
+                "parent_asin": "B07L4V1P2S",
+                "k": 10,
+                "min_rating": 1,
+                "max_rating": 2
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "scalp, itch, dandruff, dry scalp, healthy scalp, scalp feels, scalp improvement",
+                "parent_asin": "B07L4V1P2S",
+                "k": 10,
+                "min_rating": 3,
+                "max_rating": 3
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "scalp, itch, dandruff, dry scalp, healthy scalp, scalp feels, scalp improvement",
+                "parent_asin": "B07L4V1P2S",
+                "k": 10,
+                "min_rating": 4,
+                "max_rating": 5
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              831.802,
+              871.4739999999999,
+              779.903,
+              748.5169999999999,
+              757.497,
+              764.839,
+              770.803,
+              1842.297
+            ],
+            "run_sql": [
+              37.828,
+              21.715000000000003,
+              21.691
+            ],
+            "search_reviews": [
+              595.117,
+              344.293,
+              191.954,
+              198.646
+            ],
+            "total": [
+              8809.138987999177
+            ],
+            "embed_query": [
+              535.0652819979587,
+              284.3318269988231,
+              130.87425800040364,
+              138.34042899907217
+            ]
+          },
+          "tokens": {
+            "input": 19195,
+            "output": 537
+          },
+          "embedding_calls": 4
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' AND title LIKE '%shampoo%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%니옥신%' LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              684.4639999999999,
+              691.858,
+              616.184,
+              1210.358
+            ],
+            "run_sql": [
+              21.721,
+              21.643,
+              18.843
+            ],
+            "total": [
+              3281.0228039998037
+            ]
+          },
+          "tokens": {
+            "input": 6681,
+            "output": 290
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Nioxin%' AND title LIKE '%shampoo%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%니옥신%' OR title LIKE '%Nioxin%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%hair%' AND title LIKE '%shampoo%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "nioxin scalp improvement hair fall thinning shampoo",
+                "k": 10
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS total_reviews, AVG(rating) AS avg_rating, SUM(CASE WHEN (LOWER(text) LIKE '%scalp%' OR LOWER(text) LIKE '%scalp health%' OR LOWER(text) LIKE '%my scalp%' OR LOWER(text) LIKE '%scalp feels%' OR LOWER(text) LIKE '%scalp improvement%' OR LOWER(text) LIKE '%keeps follicles%') THEN 1 ELSE 0 END) AS scalp_mentions FROM reviews WHERE parent_asin IN (SELECT parent_asin FROM products WHERE title LIKE '%Nioxin%');"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              660.38,
+              752.208,
+              755.667,
+              702.841,
+              1259.8100000000002,
+              1737.721
+            ],
+            "run_sql": [
+              21.891000000000002,
+              26.401999999999997,
+              5.877000000000001,
+              51.696
+            ],
+            "search_reviews": [
+              244.862
+            ],
+            "total": [
+              6243.644504000258
+            ],
+            "embed_query": [
+              176.49600499862572
+            ]
+          },
+          "tokens": {
+            "input": 15495,
+            "output": 604
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "scope-2022-reviews",
+      "type": "범위 밖",
+      "turns": [
+        "2022년 리뷰에서는 어떤 불만이 많았어?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [],
+          "timings_ms": {
+            "llm": [
+              1338.377
+            ],
+            "total": [
+              1341.9679010003165
+            ]
+          },
+          "tokens": {
+            "input": 1558,
+            "output": 226
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE reviewed_at >= '2022-01-01' AND reviewed_at < '2023-01-01';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              963.904,
+              903.123
+            ],
+            "run_sql": [
+              35.623000000000005
+            ],
+            "total": [
+              1910.16507400127
+            ]
+          },
+          "tokens": {
+            "input": 3192,
+            "output": 141
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt FROM reviews WHERE reviewed_at >= '2022-01-01' AND reviewed_at < '2023-01-01';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              620.0799999999999,
+              834.588
+            ],
+            "run_sql": [
+              36.057
+            ],
+            "total": [
+              1496.9984780000232
+            ]
+          },
+          "tokens": {
+            "input": 3192,
+            "output": 119
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "scope-non-beauty-product",
+      "type": "범위 밖",
+      "turns": [
+        "로지텍 MX Master 3S 마우스 리뷰는 어때?"
+      ],
+      "passed": 3,
+      "total": 3,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master 3S%' OR title LIKE '%Logitech MX Master 3S%' OR title LIKE '%LogiTech MX Master 3S%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master%' OR title LIKE '%Logitech MX%' OR title LIKE '%Logi MX%' LIMIT 10;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              851.877,
+              681.137,
+              1085.982
+            ],
+            "run_sql": [
+              31.477999999999998,
+              31.438000000000002
+            ],
+            "total": [
+              2693.468601002678
+            ]
+          },
+          "tokens": {
+            "input": 4956,
+            "output": 255
+          },
+          "embedding_calls": 0
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master 3S%' OR title LIKE '%MX Master%' OR title LIKE '%Logitech%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Master 3S%' OR title LIKE '%M650%' OR title LIKE '%MX%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "Logitech MX Master 3S mouse",
+                "k": 10
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Logitech%' LIMIT 50;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              686.954,
+              875.71,
+              801.83,
+              655.654,
+              1319.7890000000002
+            ],
+            "run_sql": [
+              31.147000000000002,
+              27.82,
+              21.209
+            ],
+            "search_reviews": [
+              213.595
+            ],
+            "total": [
+              4654.959567997139
+            ],
+            "embed_query": [
+              149.62441199895693
+            ]
+          },
+          "tokens": {
+            "input": 12377,
+            "output": 379
+          },
+          "embedding_calls": 1
+        },
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master 3S%' OR title LIKE '%Logitech MX Master 3S%' OR title LIKE '%로지텍 MX Master 3S%';"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%MX Master%' OR title LIKE '%Logitech MX Master%' OR title LIKE '%MX Master 3%';"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%Logitech%' AND title LIKE '%Mouse%' LIMIT 20;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              988.954,
+              678.033,
+              871.606,
+              1053.07
+            ],
+            "run_sql": [
+              31.038,
+              30.816,
+              20.782999999999998
+            ],
+            "total": [
+              3691.5104540021275
+            ]
+          },
+          "tokens": {
+            "input": 6757,
+            "output": 301
+          },
+          "embedding_calls": 0
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 49,
+    "total": 54,
+    "by_type": {
+      "집계": {
+        "passed": 9,
+        "total": 9
+      },
+      "주제": {
+        "passed": 5,
+        "total": 9
+      },
+      "혼합": {
+        "passed": 8,
+        "total": 9
+      },
+      "후속": {
+        "passed": 9,
+        "total": 9
+      },
+      "거절": {
+        "passed": 9,
+        "total": 9
+      },
+      "범위 밖": {
+        "passed": 9,
+        "total": 9
+      }
+    },
+    "question_seconds": {
+      "median": 3.507497880000301,
+      "max": 11.242752189002204
+    },
+    "question_tokens": {
+      "median": 6755.0,
+      "total": 441331
+    },
+    "module_ms": {
+      "llm": 181269.7310000001,
+      "run_sql": 5711.139000000002,
+      "search_reviews": 17002.118000000002,
+      "embed_query": 9724.716411990812
+    },
+    "tokens": {
+      "input": 418922,
+      "output": 22409
+    },
+    "judge_tokens": {
+      "input": 16532,
+      "output": 1383
+    },
+    "judge_agreement": {
+      "matched": 17,
+      "of": 21
+    },
+    "embedding_calls": 53
+  }
+}

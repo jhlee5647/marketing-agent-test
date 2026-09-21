@@ -1,29 +1,31 @@
 import argparse
-import hashlib
 import os
-import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
 
-from review_agent.cli import SYSTEM_PROMPT, build_agent
+from review_agent.cli import SYSTEM_PROMPT, build_agent, prompt_hash
 from review_agent.eval.cases import load_cases
 from review_agent.eval.compare import compare
 from review_agent.eval.harness import evaluate
-from review_agent.eval.instrument import TimingEmbeddings, agent_executor
+from review_agent.eval.instrument import TimingEmbeddings, agent_executor, cold_store_load
 from review_agent.eval.judge import openai_judge
-from review_agent.eval.report import latest_run, run_meta, save_report, save_run
-from review_agent.search_tool import EMBEDDING_MODEL, open_store
+from review_agent.eval.report import latest_run, run_meta, save_report, save_run, save_scale
+from review_agent.search_tool import EMBEDDING_MODEL
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="케이스를 실행해 답변과 궤적을 채점하고 소요 시간과 토큰을 기록한다.")
     parser.add_argument("--cases", type=Path, default=Path("evals/cases.toml"), help="케이스 파일 경로")
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
-    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
+    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.npz"), help="리뷰 벡터 저장소 파일 경로")
     parser.add_argument("--runs", type=int, default=3, help="케이스 하나를 실행할 횟수")
+    parser.add_argument("--case", action="append", metavar="ID",
+                        help="이 id의 케이스만 돌린다. 여러 번 줄 수 있다. 주면 케이스 전부를 돌리는 것이 아니므로"
+                             " 평가가 아니라 축약 측정이 되어, 심판 없이 evals/scale/에 규모 라벨로 남는다")
     parser.add_argument("--runs-dir", type=Path, default=Path("evals/runs"), help="커밋하는 결과를 둘 디렉터리")
+    parser.add_argument("--scale-dir", type=Path, default=Path("evals/scale"), help="축약 측정 결과를 둘 디렉터리")
     parser.add_argument("--details-dir", type=Path, default=Path("evals/details"), help="답변 전문을 둘 디렉터리")
     parser.add_argument("--reports-dir", type=Path, default=Path("evals/reports"), help="비교 리포트를 둘 디렉터리")
     args = parser.parse_args()
@@ -36,23 +38,27 @@ def main() -> None:
     judge_model = os.environ.get("EVAL_JUDGE_MODEL")
     embeddings = TimingEmbeddings(OpenAIEmbeddings(model=EMBEDDING_MODEL))
 
-    start = time.perf_counter()
-    store = open_store(args.vectors, embeddings)
-    store_open_ms = (time.perf_counter() - start) * 1000
+    store, vector_store_load = cold_store_load(args.vectors, args.db, embeddings)
     agent = build_agent(args.db, args.vectors, model, store)
-    print(f"벡터 저장소 로드: {store_open_ms / 1000:.1f}s (세션당 1회, 질문당 시간과 섞지 않는다)")
+    print(f"벡터 저장소 로드: {vector_store_load['vector_store_open_ms'] / 1000:.1f}s"
+          " (콜드, 세션당 1회, 질문당 시간과 섞지 않는다)")
 
-    cases = load_cases(args.cases, args.db)
-    if judge_model is None and any(case.rubric for case in cases):
+    cases = load_cases(args.cases, args.db, args.case)
+    # 케이스 일부만 돌린 것은 평가가 아니다(평가 = 케이스 전부 × 정해진 횟수). 규모가 다른 점끼리는 품질을 비교하지
+    # 않으므로, 축약 측정은 심판을 부르지 않고 기준선과도 견주지 않는다. 시간과 자원만 남긴다.
+    reduced = args.case is not None
+    if not reduced and judge_model is None and any(case.rubric for case in cases):
         raise SystemExit("루브릭이 있는 케이스가 있습니다. .env에 EVAL_JUDGE_MODEL을 설정하세요.")
-    print(f"케이스 {len(cases)}개 × {args.runs}회, 모델 {model}, 심판 {judge_model}")
-    judge = openai_judge(judge_model) if judge_model else None
+    judge = None if reduced else (openai_judge(judge_model) if judge_model else None)
+    print(f"케이스 {len(cases)}개 × {args.runs}회, 모델 {model}, 심판 {'없음 (축약 측정)' if reduced else judge_model}")
     result = evaluate(cases, args.db, agent_executor(agent, embeddings), judge, args.runs)
 
-    meta = run_meta(
-        args.db, model, judge_model,
-        hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8], store_open_ms,
-    )
+    meta = run_meta(args.db, model, judge_model if judge else None, prompt_hash(SYSTEM_PROMPT), vector_store_load)
+    if reduced:
+        _print_summary(result, meta)
+        print(f"\n저장     {save_scale(result, args.scale_dir, meta)}  (축약 측정 — 기준선이 아니다)")
+        return
+
     baseline = latest_run(args.runs_dir, meta["scale"]["label"], meta["run_id"]) if args.runs_dir.exists() else None
     run_path, details_path = save_run(result, args.runs_dir, args.details_dir, meta)
     comparison = compare({**meta, **result}, baseline)
@@ -81,8 +87,13 @@ def _print_summary(result: dict, meta: dict) -> None:
         print(f"심판     입력 {summary['judge_tokens'].get('input', 0)} · 출력 {summary['judge_tokens'].get('output', 0)}"
               + (f" · 사람 라벨과 일치 {agreement['matched']}/{agreement['of']}" if agreement["of"] else " · 사람 라벨 없음"))
     scale = meta["scale"]
-    print(f"규모     {scale['label']} (상품 {scale['products']}개 · 리뷰 {scale['reviews']}건)"
-          f" · 벡터 저장소 로드 {meta['vector_store_open_ms'] / 1000:.1f}s")
+    print(f"규모     {scale['label']} (상품 {scale['products']}개 · 리뷰 {scale['reviews']}건)")
+    print(f"로드     콜드 {meta['vector_store_open_ms'] / 1000:.1f}s"
+          f" (읽기 {meta['vector_store_read_ms'] / 1000:.1f}s · 파싱 {meta['vector_store_parse_ms'] / 1000:.1f}s)"
+          f" · 실효 I/O {meta['vector_store_mb_per_second']:.0f}MB/s")
+    environment = meta["environment"]
+    print(f"환경     {environment['host_label'] or '호스트 라벨 없음'}"
+          f" · RAM {environment['total_ram_bytes'] / 1e9:.0f}GB · 여유 {environment['data_free_bytes'] / 1e9:.0f}GB")
     metrics = meta["load_metrics"]
     if metrics is None:
         print("적재      측정값 없음 — 이 적재 데이터는 측정값을 남기기 전에 만들어졌다")

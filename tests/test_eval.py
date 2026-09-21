@@ -1,13 +1,17 @@
 import json
+from pathlib import Path
 
 from langchain_core.embeddings import DeterministicFakeEmbedding
 
+from review_agent.cli import SYSTEM_PROMPT, build_system_prompt, prompt_hash
 from review_agent.eval.cases import load_cases
 from review_agent.eval.harness import TurnResult, evaluate
 from review_agent.eval.compare import compare
 from review_agent.eval.judge import JudgeVerdict
-from review_agent.eval.report import run_meta, save_run
-from review_agent.loader import load
+from review_agent.eval.report import label_of, latest_run, run_meta, save_run, save_scale
+from review_agent.loader import DEFAULT_SCOPE, load, scale_label
+
+COMMITTED_RUNS = Path(__file__).resolve().parent.parent / "evals" / "runs"
 
 FACE = ["Beauty & Personal Care", "Skin Care", "Face", "Creams & Moisturizers"]
 FAKE_EMBEDDINGS = DeterministicFakeEmbedding(size=8)
@@ -37,7 +41,7 @@ def review(parent_asin, rating=5.0, text="Lovely."):
 def loaded_db(tmp_path, metas, reviews):
     """픽스처를 적재한 적재 데이터의 SQLite 경로."""
     db = tmp_path / "reviews.db"
-    load(metas, reviews, db, tmp_path / "vectors.json", FAKE_EMBEDDINGS)
+    load(metas, reviews, db, tmp_path / "vectors.npz", FAKE_EMBEDDINGS)
     return db
 
 
@@ -353,10 +357,14 @@ expected_sql = "SELECT ROUND(AVG(rating), 2) FROM reviews"
 def test_run_meta_carries_the_scale_label_and_the_load_metrics(tmp_path):
     db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
 
-    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=21300.0)
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123",
+                    vector_store_load={"vector_store_open_ms": 21300.0})
 
-    assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
-    assert info["run_id"].startswith("n1-")
+    assert info["scale"] == {
+        "label": "skin-care-face-creams-moisturizers-n20", "scope": DEFAULT_SCOPE, "top_n": 20,
+        "products": 1, "reviews": 3,
+    }
+    assert info["run_id"].startswith("skin-care-face-creams-moisturizers-n20-")
     assert info["model"] == "gpt-5.4-mini"
     assert info["vector_store_open_ms"] == 21300.0
     assert info["load_metrics"]["reviews"] == 3
@@ -366,10 +374,27 @@ def test_run_meta_says_when_the_load_metrics_are_missing(tmp_path):
     db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
     db.with_suffix(".metrics.json").unlink()
 
-    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_open_ms=0.0)
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123",
+                    vector_store_load={"vector_store_open_ms": 0.0})
 
     assert info["load_metrics"] is None
-    assert info["scale"] == {"label": "n1", "products": 1, "reviews": 3}
+    # 측정값이 없으면 상위 N을 모른다. 적재된 상품 수를 상위 N으로 읽던 옛 라벨을 따른다.
+    assert info["scale"]["label"] == "skin-care-face-creams-moisturizers-n1"
+
+
+def test_run_meta_carries_the_environment_fingerprint(tmp_path, monkeypatch):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    monkeypatch.setenv("EVAL_HOST_LABEL", "ec2-r7i-xlarge")
+
+    info = run_meta(db, model="gpt-5.4-mini", judge_model=None, prompt_hash="abc123", vector_store_load={})
+
+    assert info["environment"]["host_label"] == "ec2-r7i-xlarge"
+    assert info["environment"]["total_ram_bytes"] > 0
+    assert info["environment"]["data_free_bytes"] > 0
+
+    # 호스트 라벨이 없으면 라벨 없이 적는다. 라벨 하나 때문에 평가를 세우지 않는다.
+    monkeypatch.delenv("EVAL_HOST_LABEL")
+    assert run_meta(db, "gpt-5.4-mini", None, "abc123", {})["environment"]["host_label"] is None
 
 
 def verdicts(*passes):
@@ -458,11 +483,17 @@ def test_judge_tokens_are_counted_apart_from_the_agent_tokens(tmp_path):
     assert summary["judge_tokens"] == {"input": 50, "output": 10}
 
 
-def run_document(label="n20", cases=(), seconds=2.0, tokens=1000, commit="aaa1111", prompt_hash="p1"):
-    """비교에 넣을 평가 결과 하나. (케이스 id, 통과 횟수, 실행 횟수, 유형) 목록으로 만든다."""
+def run_document(label="n20", cases=(), seconds=2.0, tokens=1000, commit="aaa1111", prompt_hash="p1", scope=None):
+    """비교에 넣을 평가 결과 하나. (케이스 id, 통과 횟수, 실행 횟수, 유형) 목록으로 만든다.
+
+    `scope`를 주지 않으면 적재 범위 필드가 없던 옛 결과 파일 형식이 된다.
+    """
+    scale = {"label": label, "products": 20, "reviews": 4744}
+    if scope is not None:
+        scale = {"label": label, "scope": scope, "top_n": 20, "products": 20, "reviews": 4744}
     return {
         "run_id": f"{label}-{commit}-000001",
-        "scale": {"label": label, "products": 20, "reviews": 4744},
+        "scale": scale,
         "load_metrics": {"load_seconds": 60.0, "embedding_seconds": 10.0, "db_bytes": 1, "vectors_bytes": 2},
         "model": "gpt-5.4-mini", "judge_model": "gpt-5.4", "prompt_hash": prompt_hash, "commit": commit,
         "vector_store_open_ms": 13000.0,
@@ -524,6 +555,64 @@ def test_quality_is_not_compared_across_different_scales(tmp_path):
     assert "9.0" in comparison.markdown
 
 
+def test_scale_label_carries_both_the_scope_and_the_top_n():
+    assert scale_label(DEFAULT_SCOPE, 20) == "skin-care-face-creams-moisturizers-n20"
+    assert scale_label(["Skin Care", "Face"], 20) != scale_label(["Skin Care"], 20)
+    assert scale_label(["Skin Care"], 20) != scale_label(["Skin Care"], 100)
+    assert scale_label(["Skin Care"], None) == "skin-care-all"
+
+
+def test_quality_is_not_compared_when_only_the_load_scope_differs(tmp_path):
+    baseline = run_document(label=scale_label(DEFAULT_SCOPE, 20), scope=DEFAULT_SCOPE, cases=[("agg", 3, 3, "집계")])
+    current = run_document(label=scale_label(["Skin Care"], 20), scope=["Skin Care"], cases=[("agg", 0, 3, "집계")],
+                           commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "규모 다름"
+    assert comparison.regressed == []
+    assert "품질은 비교하지 않" in comparison.markdown
+
+
+def test_an_old_result_without_a_scope_field_is_the_same_scale_as_face_moisturizer_top_20(tmp_path):
+    old = run_document(label="n20", cases=[("agg", 3, 3, "집계")])
+    current = run_document(label=scale_label(DEFAULT_SCOPE, 20), scope=DEFAULT_SCOPE, cases=[("agg", 1, 3, "집계")],
+                           commit="bbb2222")
+
+    assert label_of(old) == label_of(current)
+    assert compare(current, old).verdict == "회귀"
+
+
+def test_the_committed_results_are_still_found_as_the_face_moisturizer_top_20_baseline():
+    old = [
+        run
+        for path in COMMITTED_RUNS.glob("*.json")
+        for run in [json.loads(path.read_text(encoding="utf-8"))]
+        if "scope" not in run["scale"]
+    ]
+
+    assert old, "적재 범위 필드가 없는 커밋된 결과가 있어야 이 호환 규칙이 의미를 갖는다"
+    assert {label_of(run) for run in old} == {scale_label(DEFAULT_SCOPE, 20)}
+    assert latest_run(COMMITTED_RUNS, scale_label(DEFAULT_SCOPE, 20), exclude="없는-run-id") is not None
+
+
+def test_the_load_scope_is_injected_into_the_system_prompt_at_run_time():
+    narrow = build_system_prompt(DEFAULT_SCOPE, 20)
+    wide = build_system_prompt(["Skin Care"], 40215)
+
+    assert "`Skin Care > Face > Creams & Moisturizers`" in narrow and "20개 상품" in narrow
+    assert "`Skin Care`" in wide and "40215개 상품" in wide
+    assert "Creams & Moisturizers" not in wide
+
+
+def test_prompt_hash_ignores_the_load_scope_and_follows_the_rest_of_the_prompt():
+    # 적재 범위 문구가 템플릿에 없으므로 범위를 바꿔도 해시가 변할 수 없다.
+    assert "Creams & Moisturizers" not in SYSTEM_PROMPT
+    assert build_system_prompt(DEFAULT_SCOPE, 20) != build_system_prompt(["Skin Care"], 20)
+
+    assert prompt_hash(SYSTEM_PROMPT) != prompt_hash(SYSTEM_PROMPT.replace("항상 한국어로 답한다", "항상 영어로 답한다"))
+
+
 def test_without_a_baseline_a_single_result_report_comes_out(tmp_path):
     current = run_document(cases=[("agg", 3, 3, "집계"), ("topic", 2, 3, "주제")])
 
@@ -546,6 +635,18 @@ def test_comparison_report_shows_the_changes_and_the_conditions(tmp_path):
         assert expected in markdown
 
 
+def test_a_case_the_baseline_does_not_have_is_named_in_the_report_instead_of_dropped(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계"), ("scope-old", 3, 3, "범위 밖")])
+    current = run_document(cases=[("agg", 3, 3, "집계"), ("scope-new", 0, 3, "범위 밖")], commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "이상 없음"
+    assert comparison.regressed == []
+    assert "scope-new" in comparison.markdown
+    assert "scope-old" in comparison.markdown
+
+
 def test_a_refusal_is_recognised_however_the_agent_words_it(tmp_path):
     db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
     cases = one_case(tmp_path, db, """
@@ -566,3 +667,91 @@ must_refuse = true
         assert evaluate(cases, db, executor([turn(answer)]), runs=1)["cases"][0]["passed"] == 1, answer
     made_up = evaluate(cases, db, executor([turn("2022년에는 끈적임 불만이 가장 많았습니다.")]), runs=1)
     assert made_up["cases"][0]["passed"] == 0
+
+
+THREE_CASES = """
+[[cases]]
+id = "agg-count"
+type = "집계"
+turns = ["리뷰가 몇 건이야?"]
+expected_sql = "SELECT COUNT(*) FROM reviews"
+
+[[cases]]
+id = "topic-stickiness"
+type = "주제"
+turns = ["사람들이 끈적임에 대해 뭐라고 해?"]
+rubric = "끈적임에 대한 반복되는 반응을 들고 review_id와 원문 인용을 붙인다."
+
+[[cases]]
+id = "refuse-korea-sales"
+type = "거절"
+turns = ["한국 매출은?"]
+must_refuse = true
+"""
+
+
+def test_the_case_id_filter_runs_only_the_named_cases_the_given_number_of_times(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    path = write_cases(tmp_path, THREE_CASES)
+
+    cases = load_cases(path, db, ["refuse-korea-sales", "agg-count"])
+    result = evaluate(cases, db, executor([turn("3건입니다.")], [turn("3건입니다.")],
+                                          [turn("알 수 없습니다.")], [turn("알 수 없습니다.")]), runs=2)
+
+    # 케이스 파일에 적힌 순서를 따르고, 지정하지 않은 주제 케이스는 아예 돌지 않는다.
+    assert [case["id"] for case in result["cases"]] == ["agg-count", "refuse-korea-sales"]
+    assert [case["total"] for case in result["cases"]] == [2, 2]
+
+
+def test_an_unknown_case_id_is_refused_instead_of_silently_running_nothing(tmp_path):
+    path = write_cases(tmp_path, THREE_CASES)
+
+    try:
+        load_cases(path, None, ["agg-count", "agg-오타"])
+    except ValueError as error:
+        assert "agg-오타" in str(error)
+    else:
+        raise AssertionError("없는 id를 그냥 지나쳤다")
+
+
+def test_without_a_judge_a_rubric_case_still_runs_and_its_answer_is_left_unscored(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
+    cases = one_case(tmp_path, db, RUBRIC_CASE)
+
+    result = evaluate(cases, db, executor([turn("끈적인다는 말이 많습니다.")]), judge=None, runs=1)
+
+    attempt = result["cases"][0]["runs"][0]
+    assert attempt["answer_ok"] is None, "채점하지 않은 것과 실패한 것은 다르다"
+    assert attempt["judge_tokens"] == {}
+    assert result["summary"]["judge_tokens"] == {}
+    assert "채점하지 않았다" in attempt["fail_reason"]
+
+
+def test_a_reduced_measurement_lands_under_the_scale_directory_and_is_never_found_as_a_baseline(tmp_path):
+    db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")] * 3)
+    cases = load_cases(write_cases(tmp_path, THREE_CASES), db, ["agg-count"])
+    label = scale_label(DEFAULT_SCOPE, 20)
+    meta_ = {
+        "run_id": f"{label}-abcdef0-000001", "scale": {"label": label, "scope": DEFAULT_SCOPE, "top_n": 20},
+        "vector_store_open_ms": 3280.0, "vector_store_read_ms": 470.0, "vector_store_mb_per_second": 408.0,
+    }
+    measured = turn("적재된 리뷰는 3건입니다.", timings_ms={"total": [1000.0], "llm": [800.0], "run_sql": [20.0]})
+    result = evaluate(cases, db, executor([measured]), runs=1)
+    runs_dir = tmp_path / "runs"
+    runs_dir.mkdir()
+    (runs_dir / "그 규모의 평가.json").write_text(
+        json.dumps(run_document(label=label, scope=DEFAULT_SCOPE, cases=[("agg", 3, 3, "집계")]), ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    path = save_scale(result, tmp_path / "scale", meta_)
+    baseline = latest_run(runs_dir, label, exclude="없는-run-id")
+
+    assert path == tmp_path / "scale" / f"{label}.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    # 곡선이 읽을 것들: 콜드 로드와 모듈별 분해. 답변 전문은 커밋본과 같이 빼고 쓴다.
+    assert document["vector_store_open_ms"] == 3280.0
+    assert document["summary"]["module_ms"] == {"llm": 800.0, "run_sql": 20.0}
+    assert "적재된 리뷰는 3건입니다." not in path.read_text(encoding="utf-8")
+    # 규모 라벨이 같아도 기준선 탐색은 `evals/runs/`만 훑으므로 축약 측정이 집히지 않는다.
+    assert baseline is not None and baseline["run_id"] != meta_["run_id"]

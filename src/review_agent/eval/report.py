@@ -1,13 +1,16 @@
 import json
+import os
+import shutil
 import subprocess
 from pathlib import Path
 from uuid import uuid4
 
+from review_agent.loader import DEFAULT_SCOPE, load_metrics, scale_label
 from review_agent.sql_tool import run_sql
 
 
 def run_meta(
-    db_path: Path, model: str, judge_model: str | None, prompt_hash: str, vector_store_open_ms: float
+    db_path: Path, model: str, judge_model: str | None, prompt_hash: str, vector_store_load: dict
 ) -> dict:
     """평가 결과에 함께 남길 실행 조건을 모은다.
 
@@ -15,30 +18,58 @@ def run_meta(
     규모가 다른 결과끼리 품질을 비교하지 않으려면 이 라벨이 결과 안에 있어야 한다.
 
     Returns:
-        규모, 적재 측정값, 모델과 프롬프트·커밋 해시를 담은 dict.
+        규모, 적재 측정값, 환경 지문, 벡터 저장소 콜드 로드 측정값, 모델과 프롬프트·커밋 해시를 담은 dict.
     """
     scale = _scale(db_path)
     return {
         "run_id": f"{scale['label']}-{_commit()}-{uuid4().hex[:6]}",
         "scale": scale,
-        "load_metrics": _load_metrics(db_path),
+        "load_metrics": load_metrics(db_path),
+        "environment": _environment(db_path),
         "model": model,
         "judge_model": judge_model,
         "prompt_hash": prompt_hash,
         "commit": _commit(),
-        "vector_store_open_ms": vector_store_open_ms,
+        **vector_store_load,
+    }
+
+
+def _environment(db_path: Path) -> dict:
+    """어느 기계에서 돌았는지를 적는 환경 지문 세 필드.
+
+    기록만 한다. 하네스는 이 값을 다시 읽어 비교하거나 경고하지 않는다. 호스트 라벨이 `.env`에 없으면
+    라벨 없이 적는다 — 라벨 하나 때문에 평가를 세울 이유가 없다.
+    """
+    return {
+        "host_label": os.environ.get("EVAL_HOST_LABEL"),
+        "total_ram_bytes": os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES"),
+        "data_free_bytes": shutil.disk_usage(db_path).free,
     }
 
 
 def _scale(db_path: Path) -> dict:
-    """적재 데이터의 규모. 같은 라벨끼리만 품질을 비교한다."""
+    """적재 데이터의 규모. 적재 범위와 상위 N을 모두 담은 라벨이고, 같은 라벨끼리만 품질을 비교한다."""
     counts = run_sql(db_path, "SELECT (SELECT COUNT(*) FROM products), (SELECT COUNT(*) FROM reviews)")["rows"][0]
-    return {"label": f"n{counts[0]}", "products": counts[0], "reviews": counts[1]}
+    metrics = load_metrics(db_path) or {}
+    scope = metrics.get("scope", DEFAULT_SCOPE)
+    # 측정값이 없는 옛 적재 데이터는 상위 N도 모른다. 그때는 적재된 상품 수가 곧 상위 N이던 옛 라벨을 따른다.
+    top_n = metrics.get("top_n", counts[0])
+    return {
+        "label": scale_label(scope, top_n), "scope": scope, "top_n": top_n,
+        "products": counts[0], "reviews": counts[1],
+    }
 
 
-def _load_metrics(db_path: Path) -> dict | None:
-    path = db_path.with_suffix(".metrics.json")
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+def label_of(run: dict) -> str:
+    """평가 결과의 규모 라벨.
+
+    적재 범위 필드가 없는 옛 결과는 기본 적재 범위로 읽는다. 옛 라벨은 `n<상위 N>`이었으므로 그 앞에 적재 범위만
+    붙이면 지금 라벨과 같아져, 얼굴 보습·상위 20의 기준선이 새 라벨 형식에서도 계속 기준선으로 잡힌다.
+    """
+    scale = run["scale"]
+    if "scope" in scale:
+        return scale["label"]
+    return scale_label(DEFAULT_SCOPE, int(scale["label"].removeprefix("n")))
 
 
 def _commit() -> str:
@@ -58,14 +89,6 @@ def save_run(result: dict, runs_dir: Path, details_dir: Path, meta: dict) -> tup
         (커밋본 경로, 상세본 경로).
     """
     run_id = meta["run_id"]
-    committed = {
-        **meta,
-        "cases": [
-            {**case, "runs": [{k: v for k, v in attempt.items() if k != "answer"} for attempt in case["runs"]]}
-            for case in result["cases"]
-        ],
-        "summary": result["summary"],
-    }
     details = {
         "run_id": run_id,
         "cases": [
@@ -73,7 +96,33 @@ def save_run(result: dict, runs_dir: Path, details_dir: Path, meta: dict) -> tup
             for case in result["cases"]
         ],
     }
-    return _write(runs_dir / f"{run_id}.json", committed), _write(details_dir / f"{run_id}.json", details)
+    return _write(runs_dir / f"{run_id}.json", _without_answers(result, meta)), _write(
+        details_dir / f"{run_id}.json", details
+    )
+
+
+def save_scale(result: dict, scale_dir: Path, meta: dict) -> Path:
+    """축약 측정 결과를 규모 라벨 이름으로 쓴다.
+
+    케이스 전부를 돌린 것이 아니므로 이것은 평가가 아니고, 따라서 기준선이 될 수 없다. `evals/runs/`가 아닌
+    자리에 두어 기준선 탐색(`latest_run`)이 집지 않게 한다. 같은 규모를 다시 재면 덮어쓴다 — 곡선의 점은 규모마다 하나다.
+
+    Returns:
+        쓴 파일의 경로.
+    """
+    return _write(scale_dir / f"{meta['scale']['label']}.json", _without_answers(result, meta))
+
+
+def _without_answers(result: dict, meta: dict) -> dict:
+    """저장소에 커밋하는 모양. 점수·궤적·소요 시간·토큰만 남기고 답변 전문은 뺀다."""
+    return {
+        **meta,
+        "cases": [
+            {**case, "runs": [{k: v for k, v in attempt.items() if k != "answer"} for attempt in case["runs"]]}
+            for case in result["cases"]
+        ],
+        "summary": result["summary"],
+    }
 
 
 def _write(path: Path, document: dict) -> Path:
@@ -82,7 +131,7 @@ def _write(path: Path, document: dict) -> Path:
     return path
 
 
-def latest_run(runs_dir: Path, scale_label: str, exclude: str) -> dict | None:
+def latest_run(runs_dir: Path, label: str, exclude: str) -> dict | None:
     """같은 규모의 가장 최근 평가 결과. 회귀를 판정할 기준선이다.
 
     규모가 다른 결과는 품질을 비교할 수 없으므로 고르지 않는다.
@@ -95,7 +144,7 @@ def latest_run(runs_dir: Path, scale_label: str, exclude: str) -> dict | None:
         for path in sorted(runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
         if path.stem != exclude
     ]
-    return next((run for run in candidates if run["scale"]["label"] == scale_label), None)
+    return next((run for run in candidates if label_of(run) == label), None)
 
 
 def save_report(markdown: str, reports_dir: Path, name: str) -> Path:

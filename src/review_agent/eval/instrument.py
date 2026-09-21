@@ -1,11 +1,63 @@
+import os
 import time
 from collections.abc import Sequence
+from pathlib import Path
 from uuid import uuid4
 
 from langchain_core.embeddings import Embeddings
 from langchain_core.tracers.run_collector import RunCollectorCallbackHandler
 
 from review_agent.eval.harness import TurnResult
+from review_agent.search_tool import ReviewVectorStore, open_store
+
+READ_CHUNK_BYTES = 8 << 20
+
+
+def cold_store_load(vectors_path: Path, db_path: Path, embeddings: Embeddings) -> tuple[ReviewVectorStore, dict]:
+    """페이지 캐시를 버리고 벡터 저장소를 열어, 콜드 로드 시간과 실효 I/O 처리량을 함께 잰다.
+
+    사람이 실제로 겪는 것이 콜드이고, 큰 규모에서는 벡터 파일과 파싱된 구조가 함께 RAM에 들어가지 않아
+    웜이 애초에 불가능하다. 콜드로 통일해야 작은 규모와 큰 규모가 같은 자로 재어진다.
+
+    파일을 두 번 콜드로 지나간다. 먼저 순수하게 읽기만 해서 볼륨이 내는 처리량을 재고, 다시 캐시를 버린 뒤
+    실제 로드를 잰다. 로드에서 읽기를 뺀 나머지가 파싱이라, 큰 규모에서 로드가 튈 때 파싱 탓인지 볼륨 탓인지
+    구분된다. 한 번 더 지나가는 값은 가장 큰 점에서도 1분 미만이다.
+
+    Returns:
+        (열린 벡터 저장소, 콜드 로드·순수 읽기·파싱 소요 시간과 실효 I/O 처리량을 담은 dict).
+    """
+    size = vectors_path.stat().st_size
+    _drop_page_cache(vectors_path)
+    read_ms = _timed_read(vectors_path)
+    _drop_page_cache(vectors_path)
+    start = time.perf_counter()
+    store = open_store(vectors_path, db_path, embeddings)
+    open_ms = (time.perf_counter() - start) * 1000
+    return store, {
+        "vector_store_open_ms": open_ms,
+        "vector_store_read_ms": read_ms,
+        "vector_store_parse_ms": open_ms - read_ms,
+        "vector_store_mb_per_second": size / 1e6 / (read_ms / 1000),
+        "vector_store_bytes": size,
+    }
+
+
+def _drop_page_cache(path: Path) -> None:
+    """이 파일이 페이지 캐시에 올려 둔 것을 버린다. 루트 권한이 필요 없다."""
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)
+    finally:
+        os.close(fd)
+
+
+def _timed_read(path: Path) -> float:
+    """파일을 순차로 읽기만 하는 데 드는 밀리초. 파싱이 섞이지 않은 순수 I/O다."""
+    start = time.perf_counter()
+    with path.open("rb") as file:
+        while file.read(READ_CHUNK_BYTES):
+            pass
+    return (time.perf_counter() - start) * 1000
 
 
 class TimingEmbeddings(Embeddings):

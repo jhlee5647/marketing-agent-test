@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import os
 import uuid
 from pathlib import Path
@@ -6,11 +7,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.tools import tool
-from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
 from langgraph.checkpoint.memory import InMemorySaver
 
-from review_agent.search_tool import EMBEDDING_MODEL, open_store, search_reviews
+from review_agent.loader import DEFAULT_SCOPE, load_metrics
+from review_agent.search_tool import EMBEDDING_MODEL, ReviewVectorStore, open_store, search_reviews
 from review_agent.sql_tool import MAX_ROWS, run_sql
 
 EXIT_COMMANDS = {"exit", "quit", "종료"}
@@ -18,8 +19,7 @@ EXIT_COMMANDS = {"exit", "quit", "종료"}
 SYSTEM_PROMPT = """너는 마케터의 질문에 적재 데이터만 근거로 답하는 리뷰 분석 에이전트다.
 
 ## 적재 범위
-- Amazon Reviews 2023(미국 Amazon)의 얼굴 보습 제품(카테고리 Skin Care > Face > Creams & Moisturizers) 중 2023년 리뷰가 가장 많은 상위 {product_count}개 상품과, 그 상품의 2023년 리뷰 전부다.
-- 2023년 이전 리뷰, 다른 상품, 다른 카테고리(바디 로션, 립밤 등)는 들어 있지 않다.
+{scope}
 - 같은 리뷰가 SQLite(`run_sql`)와 리뷰 의미 검색(`search_reviews`)에 같은 review_id로 들어 있다.
 
 ## SQLite 스키마 (`run_sql` 도구로 조회)
@@ -66,7 +66,29 @@ reviews — 리뷰 한 행(2023년 리뷰만)
 """
 
 
-def build_agent(db_path: Path, vectors_path: Path, model: str, store: InMemoryVectorStore | None = None):
+def build_system_prompt(scope: list[str], product_count: int) -> str:
+    """적재 범위 문구를 실행 시점에 넣어 시스템 프롬프트를 만든다.
+
+    적재 범위가 프롬프트 밖의 실행 인자라서, 범위를 넓혀도 에이전트가 자기가 무엇을 가지고 있는지 알고
+    범위 밖 질문을 거절한다.
+    """
+    scope_lines = "\n".join([
+        f"- Amazon Reviews 2023(미국 Amazon)에서 원본 카테고리 경로가 `{' > '.join(scope)}` 아래인 상품 중"
+        f" 2023년 리뷰가 많은 순으로 고른 {product_count}개 상품과, 그 상품의 2023년 리뷰 전부다.",
+        "- 2023년 이전 리뷰, 이 카테고리 경로 밖의 상품과 카테고리는 들어 있지 않다.",
+    ])
+    return SYSTEM_PROMPT.format(scope=scope_lines, max_rows=MAX_ROWS)
+
+
+def prompt_hash(template: str) -> str:
+    """시스템 프롬프트의 해시. 적재 범위 문구는 실행 시점에 주입되어 템플릿에 없으므로 이 값에 섞이지 않는다.
+
+    "프롬프트가 바뀌었나"와 "적재 범위가 바뀌었나"를 한 값으로 섞지 않기 위해서다.
+    """
+    return hashlib.sha256(template.encode()).hexdigest()[:8]
+
+
+def build_agent(db_path: Path, vectors_path: Path, model: str, store: ReviewVectorStore | None = None):
     """`run_sql`, `search_reviews` 도구와 시스템 프롬프트로 대화를 기억하는 에이전트를 만든다.
 
     Args:
@@ -80,7 +102,7 @@ def build_agent(db_path: Path, vectors_path: Path, model: str, store: InMemoryVe
         """적재 데이터 SQLite에 SQL 한 문장을 읽기 전용으로 실행한다. 결과는 columns, 최대 50행의 rows, truncated이고, SQL 오류는 error 메시지로 돌아온다."""
         return run_sql(db_path, sql)
 
-    store = store or open_store(vectors_path, OpenAIEmbeddings(model=EMBEDDING_MODEL))
+    store = store or open_store(vectors_path, db_path, OpenAIEmbeddings(model=EMBEDDING_MODEL))
 
     @tool("search_reviews")
     def search_reviews_tool(
@@ -95,10 +117,12 @@ def build_agent(db_path: Path, vectors_path: Path, model: str, store: InMemoryVe
         return search_reviews(store, query, parent_asin, min_rating, max_rating, verified_only, k)
 
     product_count = run_sql(db_path, "SELECT COUNT(*) FROM products")["rows"][0][0]
+    # 적재 범위는 적재가 남긴 측정값에서 읽는다. 적재 범위를 남기기 전에 만들어진 적재 데이터는 기본 적재 범위다.
+    scope = (load_metrics(db_path) or {}).get("scope", DEFAULT_SCOPE)
     return create_agent(
         model=f"openai:{model}",
         tools=[run_sql_tool, search_reviews_tool],
-        system_prompt=SYSTEM_PROMPT.format(product_count=product_count, max_rows=MAX_ROWS),
+        system_prompt=build_system_prompt(scope, product_count),
         checkpointer=InMemorySaver(),
     )
 
@@ -106,7 +130,7 @@ def build_agent(db_path: Path, vectors_path: Path, model: str, store: InMemoryVe
 def main() -> None:
     parser = argparse.ArgumentParser(description="적재 데이터에 한국어로 질문하는 리뷰 질의 에이전트")
     parser.add_argument("--db", type=Path, default=Path("data/reviews.db"), help="SQLite 파일 경로")
-    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.json"), help="리뷰 벡터 저장소 파일 경로")
+    parser.add_argument("--vectors", type=Path, default=Path("data/vectors.npz"), help="리뷰 벡터 저장소 파일 경로")
     args = parser.parse_args()
     for path in (args.db, args.vectors):
         if not path.exists():

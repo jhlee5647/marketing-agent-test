@@ -1,0 +1,277 @@
+{
+  "run_id": "skin-care-face-n1000-165fb3c-04c758",
+  "scale": {
+    "label": "skin-care-face-n1000",
+    "scope": [
+      "Skin Care",
+      "Face"
+    ],
+    "top_n": 1000,
+    "products": 1000,
+    "reviews": 53445
+  },
+  "load_metrics": {
+    "products": 1000,
+    "reviews": 53445,
+    "top_n": 1000,
+    "scope": [
+      "Skin Care",
+      "Face"
+    ],
+    "load_seconds": 278.30481994500224,
+    "embedding_seconds": 118.28298234200338,
+    "db_bytes": 20877312,
+    "vectors_bytes": 331199921
+  },
+  "environment": {
+    "host_label": "r7i.xlarge",
+    "total_ram_bytes": 33085460480,
+    "data_free_bytes": 65678503936
+  },
+  "model": "gpt-5.4-mini",
+  "judge_model": null,
+  "prompt_hash": "ac32c759",
+  "commit": "165fb3c",
+  "vector_store_open_ms": 2702.886300998216,
+  "vector_store_read_ms": 1615.8136439989903,
+  "vector_store_parse_ms": 1087.0726569992257,
+  "vector_store_mb_per_second": 204.9740836327577,
+  "vector_store_bytes": 331199921,
+  "cases": [
+    {
+      "id": "agg-total-reviews",
+      "type": "집계",
+      "turns": [
+        "적재된 리뷰는 모두 몇 건이야?"
+      ],
+      "passed": 1,
+      "total": 1,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              703.185,
+              669.4369999999999
+            ],
+            "run_sql": [
+              6.05
+            ],
+            "total": [
+              1390.0569770012225
+            ]
+          },
+          "tokens": {
+            "input": 3172,
+            "output": 65
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "topic-stickiness",
+      "type": "주제",
+      "turns": [
+        "사람들이 끈적임에 대해 뭐라고 해?"
+      ],
+      "passed": 0,
+      "total": 1,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": null,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "심판을 부르지 않아 답변을 채점하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%stick%' OR title LIKE '%sticky%' OR title LIKE '%gel%' OR title LIKE '%cream%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky greasy residue film sticky feeling",
+                "parent_asin": "B07T8F3VS9",
+                "k": 5
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky greasy residue film sticky feeling",
+                "parent_asin": "B09TPXZ9MB",
+                "k": 5
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky greasy residue film sticky feeling",
+                "parent_asin": "B01D1CJOOQ",
+                "k": 5
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              768.467,
+              1261.741,
+              1758.18
+            ],
+            "run_sql": [
+              0.897
+            ],
+            "search_reviews": [
+              272.098,
+              276.79900000000004,
+              270.19100000000003
+            ],
+            "total": [
+              4079.197438000847
+            ],
+            "embed_query": [
+              229.13303800305584,
+              235.27864000061527,
+              243.69814599776873
+            ]
+          },
+          "tokens": {
+            "input": 7151,
+            "output": 418
+          },
+          "embedding_calls": 3
+        }
+      ]
+    },
+    {
+      "id": "mix-verified-praise",
+      "type": "혼합",
+      "turns": [
+        "LANEIGE Lip Sleeping Mask Peppermint: Nourish & Hydrate with Vitamin C and Antioxidants의 구매 인증된 5점 리뷰에서는 뭘 칭찬해?"
+      ],
+      "passed": 0,
+      "total": 1,
+      "resolved": {
+        "리뷰 수 2위 상품": "LANEIGE Lip Sleeping Mask Peppermint: Nourish & Hydrate with Vitamin C and Antioxidants"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": null,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "심판을 부르지 않아 답변을 채점하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%LANEIGE Lip Sleeping Mask Peppermint%';"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise, love, great, amazing, moisturizing, hydrating, scent, flavor, texture, soft lips",
+                "parent_asin": "B09PLRZGN1",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              667.2810000000001,
+              910.4100000000001,
+              1773.28
+            ],
+            "run_sql": [
+              2.291
+            ],
+            "search_reviews": [
+              179.69299999999998
+            ],
+            "total": [
+              3544.643541001278
+            ],
+            "embed_query": [
+              166.15124999952968
+            ]
+          },
+          "tokens": {
+            "input": 5754,
+            "output": 437
+          },
+          "embedding_calls": 1
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "total": 3,
+    "by_type": {
+      "집계": {
+        "passed": 1,
+        "total": 1
+      },
+      "주제": {
+        "passed": 0,
+        "total": 1
+      },
+      "혼합": {
+        "passed": 0,
+        "total": 1
+      }
+    },
+    "question_seconds": {
+      "median": 3.544643541001278,
+      "max": 4.079197438000847
+    },
+    "question_tokens": {
+      "median": 6191,
+      "total": 16997
+    },
+    "module_ms": {
+      "llm": 8511.981,
+      "run_sql": 9.238,
+      "search_reviews": 998.7810000000001,
+      "embed_query": 874.2610740009695
+    },
+    "tokens": {
+      "input": 16077,
+      "output": 920
+    },
+    "judge_tokens": {},
+    "judge_agreement": {
+      "matched": 0,
+      "of": 2
+    },
+    "embedding_calls": 4
+  }
+}

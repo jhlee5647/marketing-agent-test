@@ -1,0 +1,267 @@
+{
+  "run_id": "skin-care-face-creams-moisturizers-n100-165fb3c-e9d800",
+  "scale": {
+    "label": "skin-care-face-creams-moisturizers-n100",
+    "scope": [
+      "Skin Care",
+      "Face",
+      "Creams & Moisturizers"
+    ],
+    "top_n": 100,
+    "products": 100,
+    "reviews": 11244
+  },
+  "load_metrics": {
+    "products": 100,
+    "reviews": 11244,
+    "top_n": 100,
+    "scope": [
+      "Skin Care",
+      "Face",
+      "Creams & Moisturizers"
+    ],
+    "load_seconds": 181.55452550799964,
+    "embedding_seconds": 24.9065435099983,
+    "db_bytes": 3887104,
+    "vectors_bytes": 69680324
+  },
+  "environment": {
+    "host_label": "r7i.xlarge",
+    "total_ram_bytes": 33085460480,
+    "data_free_bytes": 65678569472
+  },
+  "model": "gpt-5.4-mini",
+  "judge_model": null,
+  "prompt_hash": "ac32c759",
+  "commit": "165fb3c",
+  "vector_store_open_ms": 226.39406500093173,
+  "vector_store_read_ms": 141.47693199993228,
+  "vector_store_parse_ms": 84.91713300099946,
+  "vector_store_mb_per_second": 492.5207453610413,
+  "vector_store_bytes": 69680324,
+  "cases": [
+    {
+      "id": "agg-total-reviews",
+      "type": "집계",
+      "turns": [
+        "적재된 리뷰는 모두 몇 건이야?"
+      ],
+      "passed": 1,
+      "total": 1,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              767.4720000000001,
+              662.039
+            ],
+            "run_sql": [
+              2.497
+            ],
+            "total": [
+              1442.4064189988712
+            ]
+          },
+          "tokens": {
+            "input": 3184,
+            "output": 67
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "topic-stickiness",
+      "type": "주제",
+      "turns": [
+        "사람들이 끈적임에 대해 뭐라고 해?"
+      ],
+      "passed": 0,
+      "total": 1,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": null,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "심판을 부르지 않아 답변을 채점하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%moisturizer%' OR title LIKE '%cream%' OR title LIKE '%face%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky greasy residue film",
+                "parent_asin": "B09TPXZ9MB",
+                "k": 10
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS total_reviews,\n       SUM(CASE WHEN lower(title) LIKE '%sticky%' OR lower(text) LIKE '%sticky%' OR lower(title) LIKE '%greasy%' OR lower(text) LIKE '%greasy%' OR lower(title) LIKE '%oily%' OR lower(text) LIKE '%oily%' OR lower(title) LIKE '%tacky%' OR lower(text) LIKE '%tacky%' OR lower(title) LIKE '%residue%' OR lower(text) LIKE '%residue%' OR lower(title) LIKE '%film%' OR lower(text) LIKE '%film%' THEN 1 ELSE 0 END) AS reviews_mentioning_stickiness\nFROM reviews\nWHERE parent_asin = 'B09TPXZ9MB';"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              679.648,
+              882.337,
+              1192.202,
+              1567.353
+            ],
+            "run_sql": [
+              0.858,
+              3.2279999999999998
+            ],
+            "search_reviews": [
+              482.283
+            ],
+            "total": [
+              4824.452193002799
+            ],
+            "embed_query": [
+              478.2585940010904
+            ]
+          },
+          "tokens": {
+            "input": 9955,
+            "output": 526
+          },
+          "embedding_calls": 1
+        }
+      ]
+    },
+    {
+      "id": "mix-verified-praise",
+      "type": "혼합",
+      "turns": [
+        "L'Oreal Paris Collagen Face Moisturizer, Day and Night Cream, Neck and Chest Cream to smooth skin and reduce wrinkles, 1.7 oz의 구매 인증된 5점 리뷰에서는 뭘 칭찬해?"
+      ],
+      "passed": 0,
+      "total": 1,
+      "resolved": {
+        "리뷰 수 2위 상품": "L'Oreal Paris Collagen Face Moisturizer, Day and Night Cream, Neck and Chest Cream to smooth skin and reduce wrinkles, 1.7 oz"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": null,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "심판을 부르지 않아 답변을 채점하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%L''Oreal Paris Collagen Face Moisturizer%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise benefit moisturizing smoothing wrinkles skin texture value absorb smell",
+                "parent_asin": "B0C46SPKJ9",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              895.189,
+              810.35,
+              1357.016
+            ],
+            "run_sql": [
+              0.7969999999999999
+            ],
+            "search_reviews": [
+              135.666
+            ],
+            "total": [
+              3209.4579369986604
+            ],
+            "embed_query": [
+              131.69455000024755
+            ]
+          },
+          "tokens": {
+            "input": 5782,
+            "output": 351
+          },
+          "embedding_calls": 1
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "total": 3,
+    "by_type": {
+      "집계": {
+        "passed": 1,
+        "total": 1
+      },
+      "주제": {
+        "passed": 0,
+        "total": 1
+      },
+      "혼합": {
+        "passed": 0,
+        "total": 1
+      }
+    },
+    "question_seconds": {
+      "median": 3.2094579369986604,
+      "max": 4.824452193002799
+    },
+    "question_tokens": {
+      "median": 6133,
+      "total": 19865
+    },
+    "module_ms": {
+      "llm": 8813.606,
+      "run_sql": 7.379999999999999,
+      "search_reviews": 617.9490000000001,
+      "embed_query": 609.9531440013379
+    },
+    "tokens": {
+      "input": 18921,
+      "output": 944
+    },
+    "judge_tokens": {},
+    "judge_agreement": {
+      "matched": 0,
+      "of": 2
+    },
+    "embedding_calls": 2
+  }
+}

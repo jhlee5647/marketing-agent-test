@@ -1,0 +1,282 @@
+{
+  "run_id": "skin-care-all-165fb3c-15552d",
+  "scale": {
+    "label": "skin-care-all",
+    "scope": [
+      "Skin Care"
+    ],
+    "top_n": null,
+    "products": 40215,
+    "reviews": 269114
+  },
+  "load_metrics": {
+    "products": 40215,
+    "reviews": 269114,
+    "top_n": null,
+    "scope": [
+      "Skin Care"
+    ],
+    "load_seconds": 978.1889724479988,
+    "embedding_seconds": 808.5285147610011,
+    "db_bytes": 152219648,
+    "vectors_bytes": 1667700714
+  },
+  "environment": {
+    "host_label": "r7i.xlarge",
+    "total_ram_bytes": 33085460480,
+    "data_free_bytes": 65678442496
+  },
+  "model": "gpt-5.4-mini",
+  "judge_model": null,
+  "prompt_hash": "ac32c759",
+  "commit": "165fb3c",
+  "vector_store_open_ms": 12712.08002700223,
+  "vector_store_read_ms": 11722.306258998287,
+  "vector_store_parse_ms": 989.7737680039427,
+  "vector_store_mb_per_second": 142.2672874392646,
+  "vector_store_bytes": 1667700714,
+  "cases": [
+    {
+      "id": "agg-total-reviews",
+      "type": "집계",
+      "turns": [
+        "적재된 리뷰는 모두 몇 건이야?"
+      ],
+      "passed": 1,
+      "total": 1,
+      "resolved": {},
+      "human_label": null,
+      "runs": [
+        {
+          "answer_ok": true,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": null,
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS review_count FROM reviews;"
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              922.191,
+              800.239
+            ],
+            "run_sql": [
+              22.001
+            ],
+            "total": [
+              1756.9654100007028
+            ]
+          },
+          "tokens": {
+            "input": 3168,
+            "output": 68
+          },
+          "embedding_calls": 0
+        }
+      ]
+    },
+    {
+      "id": "topic-stickiness",
+      "type": "주제",
+      "turns": [
+        "사람들이 끈적임에 대해 뭐라고 해?"
+      ],
+      "passed": 0,
+      "total": 1,
+      "resolved": {},
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": null,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "심판을 부르지 않아 답변을 채점하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%stick%' OR title LIKE '%sticky%' OR title LIKE '%tacky%' LIMIT 20;"
+              }
+            },
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT COUNT(*) AS cnt, AVG(rating) AS avg_rating FROM reviews WHERE parent_asin='B0C5YV5DPW' AND (text LIKE '%sticky%' OR text LIKE '%stickiness%' OR text LIKE '%tacky%');"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky residue greasy film",
+                "parent_asin": "B0C5YV5DPW",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky residue greasy film",
+                "parent_asin": "B0BGQNRYCF",
+                "k": 10
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "sticky tacky residue greasy film",
+                "parent_asin": "B08JY7K12D",
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              683.388,
+              1198.616,
+              2217.257
+            ],
+            "run_sql": [
+              2.44,
+              50.978
+            ],
+            "search_reviews": [
+              630.798,
+              630.344,
+              627.332
+            ],
+            "total": [
+              4750.375979998353
+            ],
+            "embed_query": [
+              411.90218400151934,
+              404.6802970005956,
+              455.25595000071917
+            ]
+          },
+          "tokens": {
+            "input": 7754,
+            "output": 629
+          },
+          "embedding_calls": 3
+        }
+      ]
+    },
+    {
+      "id": "mix-verified-praise",
+      "type": "혼합",
+      "turns": [
+        "WHOLENATURALS Pure Castile Soap Liquid, EWG Verified & Certified Palm Oil Free - 64 Oz. - 1/2 Gallon Unscented, Natural Soap, Mild & Gentle Non-gmo & Vegan - Organic Body Wash, Laundry, and Baby Soap의 구매 인증된 5점 리뷰에서는 뭘 칭찬해?"
+      ],
+      "passed": 0,
+      "total": 1,
+      "resolved": {
+        "리뷰 수 2위 상품": "WHOLENATURALS Pure Castile Soap Liquid, EWG Verified & Certified Palm Oil Free - 64 Oz. - 1/2 Gallon Unscented, Natural Soap, Mild & Gentle Non-gmo & Vegan - Organic Body Wash, Laundry, and Baby Soap"
+      },
+      "human_label": "pass",
+      "runs": [
+        {
+          "answer_ok": null,
+          "trajectory_ok": true,
+          "evidence_ok": true,
+          "fail_reason": "심판을 부르지 않아 답변을 채점하지 않았다",
+          "judge_tokens": {},
+          "judge_passed": null,
+          "trajectory": [
+            {
+              "tool": "run_sql",
+              "args": {
+                "sql": "SELECT parent_asin, title FROM products WHERE title LIKE '%WHOLENATURALS Pure Castile Soap Liquid%' OR title LIKE '%Pure Castile Soap Liquid%' OR title LIKE '%WHOLENATURALS%' LIMIT 10;"
+              }
+            },
+            {
+              "tool": "search_reviews",
+              "args": {
+                "query": "praise gentle mild versatile unscented lather clean moisturizing baby laundry",
+                "parent_asin": "B0BRJH1WL4",
+                "min_rating": 5,
+                "max_rating": 5,
+                "verified_only": true,
+                "k": 10
+              }
+            }
+          ],
+          "timings_ms": {
+            "llm": [
+              925.3900000000001,
+              779.53,
+              2228.675
+            ],
+            "run_sql": [
+              27.009999999999998
+            ],
+            "search_reviews": [
+              216.96699999999998
+            ],
+            "total": [
+              4189.698623998993
+            ],
+            "embed_query": [
+              153.8287740004307
+            ]
+          },
+          "tokens": {
+            "input": 6441,
+            "output": 603
+          },
+          "embedding_calls": 1
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "total": 3,
+    "by_type": {
+      "집계": {
+        "passed": 1,
+        "total": 1
+      },
+      "주제": {
+        "passed": 0,
+        "total": 1
+      },
+      "혼합": {
+        "passed": 0,
+        "total": 1
+      }
+    },
+    "question_seconds": {
+      "median": 4.189698623998993,
+      "max": 4.750375979998353
+    },
+    "question_tokens": {
+      "median": 7044,
+      "total": 18663
+    },
+    "module_ms": {
+      "llm": 9755.286,
+      "run_sql": 102.429,
+      "search_reviews": 2105.4410000000003,
+      "embed_query": 1425.6672050032648
+    },
+    "tokens": {
+      "input": 17363,
+      "output": 1300
+    },
+    "judge_tokens": {},
+    "judge_agreement": {
+      "matched": 0,
+      "of": 2
+    },
+    "embedding_calls": 4
+  }
+}

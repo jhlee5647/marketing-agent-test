@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from review_agent.eval.report import label_of
+
 # 기준선에서 모든 회차를 통과하던 케이스가 이 비율 이하로 떨어지면 회귀다.
 REGRESSION_RATE = 1 / 3
 
@@ -26,7 +28,7 @@ def compare(current: dict, baseline: dict | None) -> Comparison:
     """
     if baseline is None:
         return Comparison("기준선 없음", [], [], _single_report(current))
-    if current["scale"]["label"] != baseline["scale"]["label"]:
+    if label_of(current) != label_of(baseline):
         return Comparison("규모 다름", [], [], _across_scales_report(current, baseline))
 
     before = {case["id"]: case for case in baseline["cases"]}
@@ -58,6 +60,8 @@ def _comparison_report(current: dict, baseline: dict, verdict: str, regressed: l
     lines += [_change_line(before[case_id], _case(current, case_id)) for case_id in regressed] or ["없음"]
     lines += ["", "## 새로 통과하게 된 케이스", ""]
     lines += [_change_line(before[case_id], _case(current, case_id)) for case_id in newly] or ["없음"]
+    lines += ["", "## 한쪽에만 있는 케이스 (견주지 않았다)", ""]
+    lines += _case_set_diff(current, baseline) or ["없음"]
     lines += [
         "",
         "## 통과율 (판정에는 쓰지 않는다)",
@@ -72,6 +76,16 @@ def _comparison_report(current: dict, baseline: dict, verdict: str, regressed: l
         f"실패한 회차의 답변 전문은 `evals/details/{current['run_id']}.json`에 있다.",
     ]
     return "\n".join(lines) + "\n"
+
+
+def _case_set_diff(current: dict, baseline: dict) -> list[str]:
+    """한쪽에만 있는 케이스. 케이스를 갈아치운 회차에서 이 줄이 없으면 그 케이스가 조용히 빠진 것이 된다."""
+    now = {case["id"] for case in current["cases"]}
+    was = {case["id"] for case in baseline["cases"]}
+    return (
+        [f"- `{case_id}` 새 케이스라 기준선에 견줄 값이 없다" for case_id in sorted(now - was)]
+        + [f"- `{case_id}` 기준선에만 있고 지금은 없다" for case_id in sorted(was - now)]
+    )
 
 
 def _single_report(current: dict) -> str:
@@ -121,7 +135,7 @@ def _across_scales_report(current: dict, baseline: dict) -> str:
     return "\n".join([
         f"# 규모 비교: {current['run_id']} vs {baseline['run_id']}",
         "",
-        f"규모 라벨이 다릅니다({baseline['scale']['label']} vs {current['scale']['label']})."
+        f"규모 라벨이 다릅니다({label_of(baseline)} vs {label_of(current)})."
         " 데이터가 다르면 정답 자체가 다르므로 **품질은 비교하지 않습니다.** 시간과 자원만 견줍니다.",
         "",
         _conditions_table(current, baseline),
@@ -133,7 +147,7 @@ def _across_scales_report(current: dict, baseline: dict) -> str:
 
 def _conditions_table(current: dict, baseline: dict | None) -> str:
     rows = [
-        ("규모", lambda run: f"{run['scale']['label']} (상품 {run['scale']['products']} · 리뷰 {run['scale']['reviews']})"),
+        ("규모", lambda run: f"{label_of(run)} (상품 {run['scale']['products']} · 리뷰 {run['scale']['reviews']})"),
         ("모델", lambda run: run["model"]),
         ("심판", lambda run: run["judge_model"] or "없음"),
         ("프롬프트 해시", lambda run: run["prompt_hash"]),
