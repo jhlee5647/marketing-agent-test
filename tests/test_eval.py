@@ -635,6 +635,18 @@ def test_comparison_report_shows_the_changes_and_the_conditions(tmp_path):
         assert expected in markdown
 
 
+def test_a_case_the_baseline_does_not_have_is_named_in_the_report_instead_of_dropped(tmp_path):
+    baseline = run_document(cases=[("agg", 3, 3, "집계"), ("scope-old", 3, 3, "범위 밖")])
+    current = run_document(cases=[("agg", 3, 3, "집계"), ("scope-new", 0, 3, "범위 밖")], commit="bbb2222")
+
+    comparison = compare(current, baseline)
+
+    assert comparison.verdict == "이상 없음"
+    assert comparison.regressed == []
+    assert "scope-new" in comparison.markdown
+    assert "scope-old" in comparison.markdown
+
+
 def test_a_refusal_is_recognised_however_the_agent_words_it(tmp_path):
     db = loaded_db(tmp_path, [meta("A", "Cloud Whip")], [review("A")])
     cases = one_case(tmp_path, db, """
