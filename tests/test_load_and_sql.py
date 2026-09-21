@@ -11,6 +11,7 @@ from review_agent.sql_tool import run_sql
 FACE = ["Beauty & Personal Care", "Skin Care", "Face", "Creams & Moisturizers", "Face Moisturizers"]
 BODY = ["Beauty & Personal Care", "Skin Care", "Body", "Moisturizers", "Lotions"]
 LIP = ["Beauty & Personal Care", "Skin Care", "Lip Care", "Balms & Moisturizers"]
+HAIR = ["Beauty & Personal Care", "Hair Care", "Styling Products", "Creams"]
 FAKE_EMBEDDINGS = DeterministicFakeEmbedding(size=8)
 
 
@@ -44,6 +45,47 @@ def test_only_face_moisturizers_and_their_reviews_are_loaded(tmp_path):
 
     assert rows(db, "SELECT parent_asin FROM products") == [["FACE1"]]
     assert rows(db, "SELECT parent_asin FROM reviews") == [["FACE1"]]
+
+
+def test_scope_argument_loads_only_products_under_that_category_path(tmp_path):
+    db = tmp_path / "reviews.db"
+    metas = [meta("FACE1"), meta("BODY1", BODY), meta("HAIR1", HAIR)]
+    reviews = [review("FACE1"), review("BODY1"), review("HAIR1")]
+
+    load(metas, reviews, db, tmp_path / "vectors.json", FAKE_EMBEDDINGS, scope=["Skin Care"])
+
+    assert rows(db, "SELECT parent_asin FROM products ORDER BY parent_asin") == [["BODY1"], ["FACE1"]]
+    assert rows(db, "SELECT DISTINCT parent_asin FROM reviews ORDER BY parent_asin") == [["BODY1"], ["FACE1"]]
+
+
+def test_a_wider_scope_still_loads_only_2023_reviews(tmp_path):
+    db = tmp_path / "reviews.db"
+    end_of_2022 = 1672531199999  # 2022-12-31T23:59:59.999Z
+    metas = [meta("FACE1"), meta("BODY1", BODY)]
+    reviews = [review("FACE1", timestamp=end_of_2022), review("BODY1", timestamp=end_of_2022), review("BODY1")]
+
+    load(metas, reviews, db, tmp_path / "vectors.json", FAKE_EMBEDDINGS, scope=["Skin Care"])
+
+    assert rows(db, "SELECT parent_asin, date(reviewed_at) FROM reviews") == [["BODY1", "2023-05-05"]]
+    assert rows(db, "SELECT parent_asin FROM products") == [["BODY1"]]
+
+
+def test_top_n_none_loads_every_product_in_scope_that_has_a_2023_review(tmp_path):
+    db = tmp_path / "reviews.db"
+    metas = [meta("A"), meta("B"), meta("C"), meta("NO_2023"), meta("BODY1", BODY)]
+    reviews = [review("A")] * 3 + [review("B")] * 2 + [review("C")] + [review("BODY1")] * 5
+
+    assert load(metas, reviews, db, tmp_path / "vectors.json", FAKE_EMBEDDINGS, top_n=None) == (3, 6)
+    assert rows(db, "SELECT parent_asin FROM products ORDER BY parent_asin") == [["A"], ["B"], ["C"]]
+
+
+def test_the_load_scope_is_recorded_beside_the_loaded_data(tmp_path):
+    db = tmp_path / "reviews.db"
+
+    load([meta("A")], [review("A")], db, tmp_path / "vectors.json", FAKE_EMBEDDINGS, top_n=None, scope=["Skin Care"])
+
+    metrics = json.loads((tmp_path / "reviews.metrics.json").read_text(encoding="utf-8"))
+    assert (metrics["scope"], metrics["top_n"]) == (["Skin Care"], None)
 
 
 def test_only_top_n_products_by_review_count_are_loaded_with_all_their_reviews(tmp_path):

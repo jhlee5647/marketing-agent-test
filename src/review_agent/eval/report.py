@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 from uuid import uuid4
 
+from review_agent.loader import DEFAULT_SCOPE, load_metrics, scale_label
 from review_agent.sql_tool import run_sql
 
 
@@ -21,7 +22,7 @@ def run_meta(
     return {
         "run_id": f"{scale['label']}-{_commit()}-{uuid4().hex[:6]}",
         "scale": scale,
-        "load_metrics": _load_metrics(db_path),
+        "load_metrics": load_metrics(db_path),
         "model": model,
         "judge_model": judge_model,
         "prompt_hash": prompt_hash,
@@ -31,14 +32,28 @@ def run_meta(
 
 
 def _scale(db_path: Path) -> dict:
-    """적재 데이터의 규모. 같은 라벨끼리만 품질을 비교한다."""
+    """적재 데이터의 규모. 적재 범위와 상위 N을 모두 담은 라벨이고, 같은 라벨끼리만 품질을 비교한다."""
     counts = run_sql(db_path, "SELECT (SELECT COUNT(*) FROM products), (SELECT COUNT(*) FROM reviews)")["rows"][0]
-    return {"label": f"n{counts[0]}", "products": counts[0], "reviews": counts[1]}
+    metrics = load_metrics(db_path) or {}
+    scope = metrics.get("scope", DEFAULT_SCOPE)
+    # 측정값이 없는 옛 적재 데이터는 상위 N도 모른다. 그때는 적재된 상품 수가 곧 상위 N이던 옛 라벨을 따른다.
+    top_n = metrics.get("top_n", counts[0])
+    return {
+        "label": scale_label(scope, top_n), "scope": scope, "top_n": top_n,
+        "products": counts[0], "reviews": counts[1],
+    }
 
 
-def _load_metrics(db_path: Path) -> dict | None:
-    path = db_path.with_suffix(".metrics.json")
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+def label_of(run: dict) -> str:
+    """평가 결과의 규모 라벨.
+
+    적재 범위 필드가 없는 옛 결과는 기본 적재 범위로 읽는다. 옛 라벨은 `n<상위 N>`이었으므로 그 앞에 적재 범위만
+    붙이면 지금 라벨과 같아져, 얼굴 보습·상위 20의 기준선이 새 라벨 형식에서도 계속 기준선으로 잡힌다.
+    """
+    scale = run["scale"]
+    if "scope" in scale:
+        return scale["label"]
+    return scale_label(DEFAULT_SCOPE, int(scale["label"].removeprefix("n")))
 
 
 def _commit() -> str:
@@ -82,7 +97,7 @@ def _write(path: Path, document: dict) -> Path:
     return path
 
 
-def latest_run(runs_dir: Path, scale_label: str, exclude: str) -> dict | None:
+def latest_run(runs_dir: Path, label: str, exclude: str) -> dict | None:
     """같은 규모의 가장 최근 평가 결과. 회귀를 판정할 기준선이다.
 
     규모가 다른 결과는 품질을 비교할 수 없으므로 고르지 않는다.
@@ -95,7 +110,7 @@ def latest_run(runs_dir: Path, scale_label: str, exclude: str) -> dict | None:
         for path in sorted(runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
         if path.stem != exclude
     ]
-    return next((run for run in candidates if run["scale"]["label"] == scale_label), None)
+    return next((run for run in candidates if label_of(run) == label), None)
 
 
 def save_report(markdown: str, reports_dir: Path, name: str) -> Path:
